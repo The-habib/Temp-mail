@@ -22,8 +22,8 @@ function AppWrapper() {
     <Switch>
       <Route path="/create" component={CreatePage} />
       <Route>
-        <div className="flex flex-col h-full">
-          <div className="flex-1 overflow-hidden">
+        <div className="relative h-full w-full overflow-hidden">
+          <div className="h-full overflow-hidden">
             <Switch>
               <Route path="/" component={HomePage} />
               <Route path="/activity" component={ActivityPage} />

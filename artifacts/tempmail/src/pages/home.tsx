@@ -251,7 +251,7 @@ export default function HomePage() {
         </div>
 
         {/* ── Inbox section ── */}
-        <div className="bg-white rounded-t-[28px] px-5 pt-6 pb-32 min-h-[44vh] shadow-[0_-4px_16px_rgba(0,0,0,0.04)]">
+        <div className="bg-white rounded-t-[28px] px-5 pt-6 pb-36 min-h-[44vh] shadow-[0_-4px_16px_rgba(0,0,0,0.04)]">
 
           {/* Inbox header */}
           <div className="flex items-center justify-between mb-4">

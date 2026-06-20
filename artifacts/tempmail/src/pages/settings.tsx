@@ -76,7 +76,7 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col h-full bg-[#F4F4E4] overflow-y-auto">
-      <div className="px-5 pt-6 pb-10">
+      <div className="px-5 pt-6 pb-32">
 
         <h1 className="text-2xl font-bold text-[#1A1A1A] mb-6 anim-slide-up">Settings</h1>
 

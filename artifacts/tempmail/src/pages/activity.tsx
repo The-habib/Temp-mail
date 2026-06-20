@@ -110,7 +110,7 @@ export default function ActivityPage() {
 
   return (
     <div className="flex flex-col h-full bg-[#F4F4E4] overflow-y-auto">
-      <div className="px-5 pt-6 pb-8">
+      <div className="px-5 pt-6 pb-32">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6 anim-slide-up">
