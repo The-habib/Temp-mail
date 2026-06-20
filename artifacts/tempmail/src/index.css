@@ -35,34 +35,66 @@
 :root {
   --app-font-sans: 'Inter', sans-serif;
   --radius: 0.75rem;
-
   --background: 64 30% 91%;
   --foreground: 0 0% 11%;
-
   --card: 0 0% 100%;
   --card-foreground: 0 0% 11%;
-
   --popover: 0 0% 100%;
   --popover-foreground: 0 0% 11%;
-
   --primary: 88 44% 46%;
   --primary-foreground: 0 0% 100%;
-
   --secondary: 64 20% 84%;
   --secondary-foreground: 0 0% 11%;
-
   --muted: 64 18% 88%;
   --muted-foreground: 0 0% 50%;
-
   --accent: 88 44% 46%;
   --accent-foreground: 0 0% 100%;
-
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
-
   --border: 64 14% 86%;
   --input: 64 14% 86%;
   --ring: 88 44% 46%;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.93); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes popIn {
+  0%   { transform: scale(0.8); opacity: 0; }
+  60%  { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@layer utilities {
+  .anim-slide-up {
+    animation: slideUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .anim-fade {
+    animation: fadeIn 0.3s ease both;
+  }
+  .anim-scale-in {
+    animation: scaleIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .anim-pop {
+    animation: popIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
 }
 
 @layer base {
@@ -71,5 +103,14 @@
   }
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button {
+    transition-property: opacity, transform, background-color, color, box-shadow;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  button:not(:disabled):active {
+    transform: scale(0.97);
   }
 }

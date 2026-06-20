@@ -24,16 +24,13 @@ export default function WelcomePage({ onMailboxCreated }: Props) {
     createMailbox.mutate(
       { data: { address, password } },
       {
-        onSuccess: (data) => {
-          onMailboxCreated(data);
-        },
-        onError: () => {
+        onSuccess: (data) => onMailboxCreated(data),
+        onError: () =>
           toast({
             title: "Error",
             description: "Failed to create mailbox. Please try again.",
             variant: "destructive",
-          });
-        },
+          }),
       }
     );
   };
@@ -42,16 +39,20 @@ export default function WelcomePage({ onMailboxCreated }: Props) {
 
   return (
     <div className="flex flex-col h-full bg-[#F4F4E4] px-6 pt-10 pb-10 overflow-hidden">
-      <div className="flex-1 flex items-center justify-center">
-        <svg viewBox="0 0 320 300" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-72 h-auto">
+      {/* Illustration — slides up first */}
+      <div className="flex-1 flex items-center justify-center anim-slide-up" style={{ animationDelay: "0ms" }}>
+        <svg viewBox="0 0 320 300" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-72 h-auto drop-shadow-sm">
           <circle cx="160" cy="168" r="118" fill="#1A1A1A" />
+          {/* Letter / paper */}
           <rect x="88" y="62" width="144" height="108" rx="8" fill="white" />
-          <rect x="104" y="85" width="82" height="5" rx="2.5" fill="#EBEBEB" />
-          <rect x="104" y="98" width="112" height="5" rx="2.5" fill="#EBEBEB" />
-          <rect x="104" y="111" width="66" height="5" rx="2.5" fill="#EBEBEB" />
+          <rect x="104" y="85"  width="82"  height="5" rx="2.5" fill="#EBEBEB" />
+          <rect x="104" y="98"  width="112" height="5" rx="2.5" fill="#EBEBEB" />
+          <rect x="104" y="111" width="66"  height="5" rx="2.5" fill="#EBEBEB" />
+          {/* Envelope body */}
           <rect x="52" y="132" width="216" height="148" rx="14" fill="#1E1E1E" />
           <polygon points="52,132 160,208 268,132" fill="#7AB840" />
           <polygon points="52,280 112,214 160,242 208,214 268,280" fill="#252525" />
+          {/* Paper planes */}
           <g transform="translate(248,40) rotate(-20)">
             <polygon points="0,0 34,12 0,24" fill="#7AB840" />
             <line x1="0" y1="12" x2="22" y2="12" stroke="#5A8A28" strokeWidth="1.5" />
@@ -59,16 +60,18 @@ export default function WelcomePage({ onMailboxCreated }: Props) {
           <g transform="translate(20,98) rotate(25)">
             <polygon points="0,0 22,8 0,16" fill="#7AB840" opacity="0.7" />
           </g>
-          <circle cx="28" cy="152" r="8" fill="#7AB840" opacity="0.9" />
-          <circle cx="282" cy="212" r="5" fill="#7AB840" opacity="0.6" />
-          <circle cx="55" cy="248" r="5" fill="#F5C040" opacity="0.9" />
-          <circle cx="284" cy="128" r="10" fill="#7AB840" opacity="0.3" />
-          <circle cx="45" cy="185" r="3" fill="#7AB840" opacity="0.5" />
-          <circle cx="272" cy="168" r="4" fill="#B8D870" opacity="0.6" />
+          {/* Dots */}
+          <circle cx="28"  cy="152" r="8"  fill="#7AB840" opacity="0.9" />
+          <circle cx="282" cy="212" r="5"  fill="#7AB840" opacity="0.6" />
+          <circle cx="55"  cy="248" r="5"  fill="#F5C040" opacity="0.9" />
+          <circle cx="284" cy="128" r="10" fill="#7AB840" opacity="0.25" />
+          <circle cx="45"  cy="185" r="3"  fill="#7AB840" opacity="0.5" />
+          <circle cx="272" cy="168" r="4"  fill="#B8D870" opacity="0.6" />
         </svg>
       </div>
 
-      <div className="mb-8">
+      {/* Heading */}
+      <div className="mb-8 anim-slide-up" style={{ animationDelay: "80ms" }}>
         <h1 className="text-[2.6rem] font-bold leading-tight mb-3 text-[#1A1A1A]">
           Temp <span className="text-[#7AB840]">Mail</span>
         </h1>
@@ -77,18 +80,25 @@ export default function WelcomePage({ onMailboxCreated }: Props) {
         </p>
       </div>
 
-      <div className="space-y-4">
+      {/* CTA */}
+      <div className="space-y-3 anim-slide-up" style={{ animationDelay: "160ms" }}>
         <button
           onClick={handleGetStarted}
           disabled={isPending}
-          className="w-full bg-[#1A1A1A] text-white rounded-full py-4 px-6 flex items-center justify-between font-semibold text-base disabled:opacity-60 active:scale-[0.98] transition-transform"
+          className="w-full bg-[#1A1A1A] text-white rounded-full py-4 px-6 flex items-center justify-between font-semibold text-base disabled:opacity-60 hover:bg-[#2A2A2A]"
           data-testid="button-get-started"
         >
-          <span>{isPending ? "Setting up..." : "Get Started"}</span>
-          <div className="w-9 h-9 bg-[#7AB840] rounded-full flex items-center justify-center">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M3 8h10M9 4l4 4-4 4" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+          <span>{isPending ? "Setting up…" : "Get Started"}</span>
+          <div className="w-9 h-9 bg-[#7AB840] rounded-full flex items-center justify-center flex-shrink-0">
+            {isPending ? (
+              <svg className="animate-spin" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <circle cx="8" cy="8" r="6" stroke="white" strokeWidth="2" strokeDasharray="30" strokeDashoffset="10" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M3 8h10M9 4l4 4-4 4" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
           </div>
         </button>
         <p className="text-center text-[#9A9A9A] text-sm">No sign up needed</p>
