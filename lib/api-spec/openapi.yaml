@@ -1,15 +1,16 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: TempMail API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: mailbox
+    description: Temp mailbox operations
 paths:
   /healthz:
     get:
@@ -24,6 +25,110 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /domains:
+    get:
+      operationId: getDomains
+      tags: [mailbox]
+      summary: Get available email domains
+      responses:
+        "200":
+          description: List of available domains
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Domain"
+
+  /mailbox:
+    post:
+      operationId: createMailbox
+      tags: [mailbox]
+      summary: Create a new temp mailbox
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MailboxInput"
+      responses:
+        "201":
+          description: Created mailbox
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Mailbox"
+        "400":
+          description: Bad request
+
+  /mailbox/{id}/messages:
+    get:
+      operationId: getMessages
+      tags: [mailbox]
+      summary: Get messages for a mailbox
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MessageSummary"
+        "404":
+          description: Mailbox not found
+
+  /mailbox/{id}/messages/{messageId}:
+    get:
+      operationId: getMessage
+      tags: [mailbox]
+      summary: Get a specific message
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Message detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "404":
+          description: Message not found
+    delete:
+      operationId: deleteMessage
+      tags: [mailbox]
+      summary: Delete a message
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +139,111 @@ components:
       required:
         - status
 
+    Domain:
+      type: object
+      properties:
+        id:
+          type: string
+        domain:
+          type: string
+        isActive:
+          type: boolean
+      required:
+        - id
+        - domain
+        - isActive
+
+    MailboxInput:
+      type: object
+      properties:
+        address:
+          type: string
+          description: Full email address (username@domain)
+        password:
+          type: string
+      required:
+        - address
+        - password
+
+    Mailbox:
+      type: object
+      properties:
+        id:
+          type: string
+        address:
+          type: string
+        token:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - address
+        - token
+        - createdAt
+
+    MessageSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        from:
+          $ref: "#/components/schemas/EmailAddress"
+        subject:
+          type: string
+        intro:
+          type: string
+        seen:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - from
+        - subject
+        - intro
+        - seen
+        - createdAt
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+        from:
+          $ref: "#/components/schemas/EmailAddress"
+        to:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmailAddress"
+        subject:
+          type: string
+        intro:
+          type: string
+        text:
+          type: ["string", "null"]
+        html:
+          type: ["string", "null"]
+        seen:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - from
+        - to
+        - subject
+        - intro
+        - seen
+        - createdAt
+
+    EmailAddress:
+      type: object
+      properties:
+        address:
+          type: string
+        name:
+          type: string
+      required:
+        - address
+        - name
