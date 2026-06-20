@@ -155,6 +155,43 @@ export function useGetProviders<TData = Awaited<ReturnType<typeof getProviders>>
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
+export const getGetProviderDomainsUrl = (provider: string) => {
+  return `/api/domains?provider=${encodeURIComponent(provider)}`
+}
+
+/**
+ * @summary Get available domains for a specific provider
+ */
+export const getProviderDomains = async (provider: string, options?: RequestInit): Promise<Domain[]> => {
+  return customFetch<Domain[]>(getGetProviderDomainsUrl(provider), { ...options, method: 'GET' });
+}
+
+export const getGetProviderDomainsQueryKey = (provider: string) => {
+  return [ `/api/domains`, provider ] as const;
+}
+
+export const getGetProviderDomainsQueryOptions = <TData = Awaited<ReturnType<typeof getProviderDomains>>, TError = ErrorType<unknown>>(provider: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProviderDomains>>, TError, TData>, request?: SecondParameter<typeof customFetch>}) => {
+  const {query: queryOptions, request: requestOptions} = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getGetProviderDomainsQueryKey(provider);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getProviderDomains>>> = ({ signal }) => getProviderDomains(provider, { signal, ...requestOptions });
+  return { queryKey, queryFn, enabled: !!(provider), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProviderDomains>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetProviderDomainsQueryResult = NonNullable<Awaited<ReturnType<typeof getProviderDomains>>>
+export type GetProviderDomainsQueryError = ErrorType<unknown>
+
+/**
+ * @summary Get domains for a specific provider
+ */
+export function useGetProviderDomains<TData = Awaited<ReturnType<typeof getProviderDomains>>, TError = ErrorType<unknown>>(
+  provider: string,
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProviderDomains>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetProviderDomainsQueryOptions(provider, options)
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
 export const getGetDomainsUrl = () => {
 
 

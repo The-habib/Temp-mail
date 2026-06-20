@@ -55,7 +55,31 @@ router.get("/providers", (_req, res) => {
 
 // ─── /domains ───────────────────────────────────────────────────────────────
 
+const GUERRILLA_DOMAINS = [
+  "grr.la",
+  "guerrillamailblock.com",
+  "guerrillamail.info",
+  "guerrillamail.biz",
+  "guerrillamail.de",
+  "guerrillamail.net",
+  "guerrillamail.org",
+  "spam4.me",
+].map((d) => ({ id: d, domain: d, isActive: true }));
+
 router.get("/domains", async (req, res) => {
+  const provider = (req.query.provider as string) || "mailtm";
+
+  if (provider === "guerrillamail") {
+    res.json(GUERRILLA_DOMAINS);
+    return;
+  }
+
+  if (provider === "templol") {
+    res.json([]);
+    return;
+  }
+
+  // Default: mail.tm
   try {
     const response = await mailtmFetch("/domains?page=1");
     if (!response.ok) {
