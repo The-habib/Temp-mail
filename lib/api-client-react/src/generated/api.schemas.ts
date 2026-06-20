@@ -9,6 +9,13 @@ export interface HealthStatus {
   status: string;
 }
 
+export interface Provider {
+  id: string;
+  name: string;
+  description: string;
+  supportsCustom: boolean;
+}
+
 export interface Domain {
   id: string;
   domain: string;
@@ -19,6 +26,8 @@ export interface MailboxInput {
   /** Full email address (username@domain) */
   address: string;
   password: string;
+  /** Provider ID (mailtm, guerrillamail, templol) */
+  provider?: string;
 }
 
 export interface Mailbox {
@@ -26,6 +35,7 @@ export interface Mailbox {
   address: string;
   token: string;
   createdAt: string;
+  provider?: string;
 }
 
 export interface EmailAddress {
@@ -55,4 +65,3 @@ export interface Message {
   seen: boolean;
   createdAt: string;
 }
-

@@ -25,7 +25,8 @@ import type {
   Mailbox,
   MailboxInput,
   Message,
-  MessageSummary
+  MessageSummary,
+  Provider
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -117,6 +118,42 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
 
 
+
+export const getGetProvidersUrl = () => {
+  return `/api/providers`
+}
+
+/**
+ * @summary Get available email providers
+ */
+export const getProviders = async ( options?: RequestInit): Promise<Provider[]> => {
+  return customFetch<Provider[]>(getGetProvidersUrl(), { ...options, method: 'GET' });
+}
+
+export const getGetProvidersQueryKey = () => {
+    return [ `/api/providers` ] as const;
+}
+
+export const getGetProvidersQueryOptions = <TData = Awaited<ReturnType<typeof getProviders>>, TError = ErrorType<unknown>>(options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProviders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}) => {
+  const {query: queryOptions, request: requestOptions} = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getGetProvidersQueryKey();
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getProviders>>> = ({ signal }) => getProviders({ signal, ...requestOptions });
+  return { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProviders>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetProvidersQueryResult = NonNullable<Awaited<ReturnType<typeof getProviders>>>
+export type GetProvidersQueryError = ErrorType<unknown>
+
+/**
+ * @summary Get available email providers
+ */
+export function useGetProviders<TData = Awaited<ReturnType<typeof getProviders>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProviders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetProvidersQueryOptions(options)
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 export const getGetDomainsUrl = () => {
 

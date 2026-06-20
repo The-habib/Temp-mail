@@ -3,7 +3,44 @@ import { useLocation } from "wouter";
 import { useGetDomains, useCreateMailbox } from "@workspace/api-client-react";
 import { useMailboxStore } from "@/hooks/use-mailbox-store";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Check, Zap, Shield, Globe } from "lucide-react";
+
+type ProviderKey = "mailtm" | "guerrillamail" | "templol";
+
+interface ProviderInfo {
+  id: ProviderKey;
+  name: string;
+  description: string;
+  supportsCustom: boolean;
+  icon: React.ReactNode;
+  badge?: string;
+}
+
+const PROVIDERS: ProviderInfo[] = [
+  {
+    id: "mailtm",
+    name: "Mail.tm",
+    description: "Fast & reliable",
+    supportsCustom: true,
+    icon: <Shield className="h-4 w-4" />,
+    badge: "Popular",
+  },
+  {
+    id: "guerrillamail",
+    name: "Guerrilla Mail",
+    description: "Classic & trusted",
+    supportsCustom: true,
+    icon: <Globe className="h-4 w-4" />,
+  },
+  {
+    id: "templol",
+    name: "TempMail.lol",
+    description: "Simple & instant",
+    supportsCustom: false,
+    icon: <Zap className="h-4 w-4" />,
+    badge: "Instant",
+  },
+];
 
 function generateRandomString(length: number) {
   return Math.random().toString(36).substring(2, 2 + length);
@@ -15,23 +52,28 @@ export default function CreatePage() {
   const { toast } = useToast();
   const [mode, setMode] = useState<"random" | "custom">("random");
   const [customUsername, setCustomUsername] = useState("");
+  const [selectedProvider, setSelectedProvider] = useState<ProviderKey>("mailtm");
 
   const { data: domains } = useGetDomains();
   const createMailbox = useCreateMailbox();
 
   const domain = domains?.[0]?.domain ?? "...";
+  const currentProvider = PROVIDERS.find((p) => p.id === selectedProvider)!;
 
   const handleCreate = () => {
     if (!domains || domains.length === 0) return;
     const username =
-      mode === "custom" && customUsername.trim()
+      mode === "custom" && customUsername.trim() && currentProvider.supportsCustom
         ? customUsername.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "")
         : generateRandomString(8);
-    const address = `${username}@${domain}`;
+
+    const address = selectedProvider === "templol"
+      ? `${generateRandomString(8)}@placeholder.com`
+      : `${username}@${domain}`;
     const password = generateRandomString(12);
 
     createMailbox.mutate(
-      { data: { address, password } },
+      { data: { address, password, provider: selectedProvider } },
       {
         onSuccess: (data) => {
           setMailbox(data);
@@ -50,7 +92,7 @@ export default function CreatePage() {
 
   const canCreate =
     !createMailbox.isPending &&
-    (mode === "random" || customUsername.trim().length > 0);
+    (mode === "random" || !currentProvider.supportsCustom || customUsername.trim().length > 0);
 
   return (
     <div className="flex flex-col h-full bg-[#F4F4E4] px-5 pt-5 pb-8 overflow-y-auto">
@@ -66,75 +108,107 @@ export default function CreatePage() {
       {/* Heading */}
       <div className="mb-5 anim-slide-up" style={{ animationDelay: "40ms" }}>
         <h1 className="text-[2rem] font-bold text-[#1A1A1A] leading-snug">
-          Create<br />New Email
+          New<br />Email
         </h1>
-        <p className="text-[#7A7A7A] text-sm mt-1">Customize your email or generate randomly.</p>
+        <p className="text-[#7A7A7A] text-sm mt-1">Pick a provider and customize your address.</p>
       </div>
 
-      {/* Illustration */}
-      <div className="flex justify-center mb-6 anim-scale-in" style={{ animationDelay: "80ms" }}>
-        <svg viewBox="0 0 260 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-56 h-auto">
-          <ellipse cx="38"  cy="148" rx="18" ry="32" fill="#7AB840" transform="rotate(-20 38 148)" />
-          <ellipse cx="26"  cy="136" rx="11" ry="20" fill="#5A9030" transform="rotate(-35 26 136)" />
-          <ellipse cx="222" cy="148" rx="18" ry="32" fill="#7AB840" transform="rotate(20 222 148)" />
-          <ellipse cx="234" cy="136" rx="11" ry="20" fill="#5A9030" transform="rotate(35 234 136)" />
-          <rect x="58" y="72" width="144" height="108" rx="12" fill="#1A1A1A" />
-          <polygon points="58,72 130,128 202,72" fill="#7AB840" />
-          <polygon points="58,180 104,126 130,144 156,126 202,180" fill="#252525" />
-          <circle cx="130" cy="40" r="16" fill="#F5C040" />
-          <circle cx="130" cy="40" r="8"  fill="#E8A820" />
-          <ellipse cx="113" cy="46" rx="9" ry="5.5" fill="#7AB840" transform="rotate(-30 113 46)" />
-          <ellipse cx="147" cy="46" rx="9" ry="5.5" fill="#7AB840" transform="rotate(30 147 46)" />
-          <line x1="130" y1="56" x2="130" y2="72" stroke="#5A9030" strokeWidth="2.5" />
-          <circle cx="52"  cy="74"  r="4"   fill="#7AB840" opacity="0.7" />
-          <circle cx="210" cy="88"  r="3.5" fill="#F5C040" opacity="0.8" />
-          <circle cx="44"  cy="108" r="3"   fill="#7AB840" opacity="0.5" />
-          <g transform="translate(205,52) rotate(-10)">
-            <polygon points="0,0 22,8 0,16" fill="#7AB840" opacity="0.8" />
-          </g>
-        </svg>
-      </div>
-
-      {/* Random / Custom toggle */}
-      <div className="bg-[#EAEADA] rounded-full p-1 flex mb-5 anim-slide-up" style={{ animationDelay: "120ms" }}>
-        {(["random", "custom"] as const).map((m) => (
-          <button
-            key={m}
-            onClick={() => setMode(m)}
-            className={`flex-1 py-2.5 rounded-full text-sm font-semibold capitalize transition-all duration-250 ${
-              mode === m
-                ? m === "custom"
-                  ? "bg-[#7AB840] text-white shadow-sm"
-                  : "bg-white text-[#1A1A1A] shadow-sm"
-                : "text-[#7A7A7A]"
-            }`}
-          >
-            {m.charAt(0).toUpperCase() + m.slice(1)}
-          </button>
-        ))}
-      </div>
-
-      {/* Input */}
-      <div
-        className="bg-white rounded-2xl px-4 py-3.5 flex items-center gap-2 mb-6 border-2 transition-colors duration-200 anim-slide-up"
-        style={{
-          borderColor: mode === "custom" ? "#7AB840" : "#E8E8D8",
-          animationDelay: "160ms",
-        }}
-      >
-        <input
-          type="text"
-          placeholder={mode === "random" ? "auto-generated" : "your username"}
-          value={customUsername}
-          onChange={(e) => setCustomUsername(e.target.value)}
-          disabled={mode === "random"}
-          className="flex-1 text-sm text-[#1A1A1A] placeholder-[#C8C8B8] outline-none disabled:opacity-40 bg-transparent"
-          data-testid="input-username"
-        />
-        <div className="flex items-center text-sm text-[#7A7A7A] flex-shrink-0 border-l border-[#E8E8D8] pl-3">
-          @{domain}
+      {/* Provider selection */}
+      <div className="mb-5 anim-slide-up" style={{ animationDelay: "80ms" }}>
+        <p className="text-[11px] font-semibold text-[#9A9A9A] uppercase tracking-widest mb-2.5">Provider</p>
+        <div className="flex flex-col gap-2.5">
+          {PROVIDERS.map((p) => {
+            const active = selectedProvider === p.id;
+            return (
+              <button
+                key={p.id}
+                onClick={() => {
+                  setSelectedProvider(p.id);
+                  if (!p.supportsCustom) setMode("random");
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 transition-all duration-200 text-left ${
+                  active
+                    ? "border-[#7AB840] bg-white shadow-[0_2px_12px_rgba(122,184,64,0.15)]"
+                    : "border-transparent bg-white/70 hover:bg-white"
+                }`}
+              >
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-200 ${
+                  active ? "bg-[#7AB840] text-white" : "bg-[#F0F0E4] text-[#7A7A7A]"
+                }`}>
+                  {p.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-[#1A1A1A]">{p.name}</span>
+                    {p.badge && (
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                        active ? "bg-[#7AB840] text-white" : "bg-[#E8E8D8] text-[#7A7A7A]"
+                      }`}>
+                        {p.badge}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-[#9A9A9A] mt-0.5">{p.description}</p>
+                </div>
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+                  active ? "border-[#7AB840] bg-[#7AB840]" : "border-[#DDDDC8]"
+                }`}>
+                  {active && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
+
+      {/* Random / Custom toggle — only if provider supports it */}
+      {currentProvider.supportsCustom ? (
+        <>
+          <div className="bg-[#EAEADA] rounded-full p-1 flex mb-4 anim-slide-up" style={{ animationDelay: "120ms" }}>
+            {(["random", "custom"] as const).map((m) => (
+              <button
+                key={m}
+                onClick={() => setMode(m)}
+                className={`flex-1 py-2.5 rounded-full text-sm font-semibold capitalize transition-all duration-250 ${
+                  mode === m
+                    ? m === "custom"
+                      ? "bg-[#7AB840] text-white shadow-sm"
+                      : "bg-white text-[#1A1A1A] shadow-sm"
+                    : "text-[#7A7A7A]"
+                }`}
+              >
+                {m.charAt(0).toUpperCase() + m.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          <div
+            className="bg-white rounded-2xl px-4 py-3.5 flex items-center gap-2 mb-6 border-2 transition-colors duration-200 anim-slide-up"
+            style={{
+              borderColor: mode === "custom" ? "#7AB840" : "#E8E8D8",
+              animationDelay: "160ms",
+            }}
+          >
+            <input
+              type="text"
+              placeholder={mode === "random" ? "auto-generated" : "your username"}
+              value={customUsername}
+              onChange={(e) => setCustomUsername(e.target.value)}
+              disabled={mode === "random"}
+              className="flex-1 text-sm text-[#1A1A1A] placeholder-[#C8C8B8] outline-none disabled:opacity-40 bg-transparent"
+              data-testid="input-username"
+            />
+            <div className="flex items-center text-sm text-[#7A7A7A] flex-shrink-0 border-l border-[#E8E8D8] pl-3">
+              @{domain}
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="bg-[#EDF6E0] rounded-2xl px-4 py-3 mb-6 anim-slide-up flex items-center gap-2.5" style={{ animationDelay: "120ms" }}>
+          <Zap className="h-4 w-4 text-[#7AB840] flex-shrink-0" />
+          <p className="text-sm text-[#5A8A28] font-medium">Address is auto-generated by this provider.</p>
+        </div>
+      )}
 
       {/* Create button */}
       <button
