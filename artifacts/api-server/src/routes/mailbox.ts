@@ -151,7 +151,10 @@ router.post("/mailbox", async (req, res) => {
 
     // ── Guerrilla Mail ────────────────────────────────────────────────────────
     if (provider === "guerrillamail") {
-      const username = address.split("@")[0] || "";
+      const username   = address.split("@")[0] || "";
+      const wantDomain = address.split("@")[1] || "grr.la";
+
+      // Step 1 — create / retrieve session (sets username, assigns default domain)
       const gmResp = await guerrillaFetch({ f: "get_email_address", email_user: username });
       if (!gmResp.ok) {
         res.status(502).json({ error: "Failed to reach Guerrilla Mail" });
@@ -163,12 +166,29 @@ router.post("/mailbox", async (req, res) => {
         sid_token: string;
         email_timestamp: number;
       };
+
+      // Step 2 — apply the user-selected domain if different from the default
+      let finalAddress = gm.email_addr;
+      const assignedDomain = finalAddress.split("@")[1] ?? "";
+      if (wantDomain && wantDomain !== assignedDomain) {
+        const setResp = await guerrillaFetch({
+          f: "set_email_user",
+          email_user: username,
+          domain: wantDomain,
+          sid_token: gm.sid_token,
+        });
+        if (setResp.ok) {
+          const setData = await setResp.json() as { email_addr?: string };
+          if (setData.email_addr) finalAddress = setData.email_addr;
+        }
+      }
+
       const id = `gm_${randomUUID()}`;
       const createdAt = new Date(gm.email_timestamp * 1000).toISOString();
-      sessionStore.set(id, { provider: "guerrillamail", token: gm.sid_token, address: gm.email_addr });
+      sessionStore.set(id, { provider: "guerrillamail", token: gm.sid_token, address: finalAddress });
       res.status(201).json({
         id,
-        address: gm.email_addr,
+        address: finalAddress,
         token: gm.sid_token,
         createdAt,
         provider: "guerrillamail",
@@ -180,7 +200,9 @@ router.post("/mailbox", async (req, res) => {
     if (provider === "templol") {
       const lolResp = await lolFetch("/generate/rush");
       if (!lolResp.ok) {
-        res.status(502).json({ error: "Failed to reach TempMail.lol" });
+        const errText = await lolResp.text().catch(() => "(no body)");
+        req.log.error({ status: lolResp.status, body: errText }, "TempMail.lol generation failed");
+        res.status(502).json({ error: `TempMail.lol unavailable (${lolResp.status})` });
         return;
       }
       const lol = await lolResp.json() as { token: string; address: string };

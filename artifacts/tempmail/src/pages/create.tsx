@@ -3,9 +3,9 @@ import { useLocation } from "wouter";
 import { useGetProviderDomains, useCreateMailbox } from "@workspace/api-client-react";
 import { useMailboxStore } from "@/hooks/use-mailbox-store";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Check, Zap, Shield, Globe, ChevronRight, Shuffle } from "lucide-react";
+import { ArrowLeft, Check, Shield, Globe, ChevronRight, Shuffle, Info } from "lucide-react";
 
-type ProviderKey = "mailtm" | "guerrillamail" | "templol";
+type ProviderKey = "mailtm" | "guerrillamail";
 
 interface ProviderInfo {
   id: ProviderKey;
@@ -22,7 +22,7 @@ const PROVIDERS: ProviderInfo[] = [
   {
     id: "mailtm",
     name: "Mail.tm",
-    description: "Fast & reliable",
+    description: "Fast & reliable · choose domain",
     supportsCustom: true,
     supportsDomain: true,
     icon: <Shield className="h-4 w-4" />,
@@ -32,21 +32,11 @@ const PROVIDERS: ProviderInfo[] = [
   {
     id: "guerrillamail",
     name: "Guerrilla Mail",
-    description: "Classic & trusted · 8 domains",
+    description: "Classic & trusted · auto domain",
     supportsCustom: true,
-    supportsDomain: true,
+    supportsDomain: false,
     icon: <Globe className="h-4 w-4" />,
     color: "#4285F4",
-  },
-  {
-    id: "templol",
-    name: "TempMail.lol",
-    description: "Simple & instant",
-    supportsCustom: false,
-    supportsDomain: false,
-    icon: <Zap className="h-4 w-4" />,
-    badge: "Instant",
-    color: "#FF6D00",
   },
 ];
 
@@ -66,12 +56,12 @@ export default function CreatePage() {
   const [selectedProvider, setSelectedProvider] = useState<ProviderKey>("mailtm");
   const [selectedDomain, setSelectedDomain] = useState<string>("");
 
-  const { data: domains = [], isLoading: domainsLoading } = useGetProviderDomains(selectedProvider, {
-    query: { enabled: selectedProvider !== "templol" },
-  });
-
   const createMailbox = useCreateMailbox();
   const currentProvider = PROVIDERS.find((p) => p.id === selectedProvider)!;
+
+  const { data: domains = [], isLoading: domainsLoading } = useGetProviderDomains(selectedProvider, {
+    query: { enabled: currentProvider?.supportsDomain === true },
+  });
 
   // Reset domain selection when provider or domains change
   useEffect(() => {
@@ -94,10 +84,10 @@ export default function CreatePage() {
         ? customUsername.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "")
         : generateRandomString(10);
 
-    const address =
-      selectedProvider === "templol"
-        ? `${generateRandomString(8)}@placeholder.com`
-        : `${username}@${selectedDomain || domains[0]?.domain || "mail.tm"}`;
+    // For Guerrilla Mail, the API assigns the domain automatically
+    const address = currentProvider.supportsDomain
+      ? `${username}@${selectedDomain || domains[0]?.domain || "mail.tm"}`
+      : `${username}@guerrillamail.com`;
 
     const password = generateRandomString(14);
 
@@ -112,7 +102,10 @@ export default function CreatePage() {
         onError: () =>
           toast({
             title: "Error",
-            description: "That username may be taken — try a different one.",
+            description:
+              selectedProvider === "guerrillamail"
+                ? "Guerrilla Mail couldn't create that address — try a different username."
+                : "That username may already be taken — try a different one.",
             variant: "destructive",
           }),
       }
@@ -131,17 +124,20 @@ export default function CreatePage() {
 
   const canCreate =
     !createMailbox.isPending &&
-    (selectedProvider === "templol" || selectedDomain !== "") &&
+    (!currentProvider.supportsDomain || selectedDomain !== "") &&
     (mode === "random" || !currentProvider.supportsCustom || customUsername.trim().length > 0);
 
-  const previewAddress =
-    selectedProvider === "templol"
-      ? "auto@generated.address"
-      : `${
-          mode === "custom" && customUsername.trim()
-            ? customUsername.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "")
-            : "username"
-        }@${selectedDomain || "..."}`;
+  const previewAddress = currentProvider.supportsDomain
+    ? `${
+        mode === "custom" && customUsername.trim()
+          ? customUsername.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "")
+          : "username"
+      }@${selectedDomain || "..."}`
+    : `${
+        mode === "custom" && customUsername.trim()
+          ? customUsername.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "")
+          : "username"
+      }@auto-assigned.domain`;
 
   return (
     <div className="flex flex-col h-full bg-[#F4F4E4] overflow-y-auto pb-10">
@@ -273,11 +269,11 @@ export default function CreatePage() {
         </div>
       )}
 
-      {/* TempMail.lol auto-note */}
+      {/* Auto-domain note for providers without domain selection */}
       {!currentProvider.supportsDomain && (
-        <div className="mx-5 mb-5 bg-[#EDF6E0] rounded-2xl px-4 py-3 flex items-center gap-2.5 anim-slide-up" style={{ animationDelay: "100ms" }}>
-          <Zap className="h-4 w-4 text-[#7AB840] flex-shrink-0" />
-          <p className="text-sm text-[#5A8A28] font-medium">Address & domain are auto-generated instantly.</p>
+        <div className="mx-5 mb-5 bg-[#EDF3FB] rounded-2xl px-4 py-3 flex items-center gap-2.5 anim-slide-up" style={{ animationDelay: "100ms" }}>
+          <Info className="h-4 w-4 text-[#4285F4] flex-shrink-0" />
+          <p className="text-sm text-[#2A5AC4] font-medium">Domain is assigned automatically by Guerrilla Mail.</p>
         </div>
       )}
 
