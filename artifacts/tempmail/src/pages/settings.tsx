@@ -27,14 +27,11 @@ type RowProps = {
   label: string;
   sub?: string;
   right?: React.ReactNode;
-  delay?: number;
 };
 
-function SettingRow({ icon: Icon, label, sub, right, delay = 0 }: RowProps) {
+function SettingRow({ icon: Icon, label, sub, right }: RowProps) {
   return (
-    <div
-      className="flex items-center justify-between px-4 py-3.5 active:bg-[#F8F8F4] transition-colors"
-    >
+    <div className="flex items-center justify-between px-4 py-3.5 active:bg-[#F8F8F4] transition-colors">
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 bg-[#F2F2E4] rounded-full flex items-center justify-center flex-shrink-0">
           <Icon className="h-4 w-4 text-[#7A7A7A]" strokeWidth={1.8} />
@@ -51,12 +48,9 @@ function SettingRow({ icon: Icon, label, sub, right, delay = 0 }: RowProps) {
   );
 }
 
-function SectionCard({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+function SectionCard({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      className="bg-white rounded-2xl overflow-hidden divide-y divide-[#F4F4EE] shadow-[0_1px_4px_rgba(0,0,0,0.04)] anim-slide-up"
-      style={{ animationDelay: `${delay}ms` }}
-    >
+    <div className="bg-white rounded-2xl overflow-hidden divide-y divide-[#F4F4EE] shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
       {children}
     </div>
   );
@@ -64,84 +58,61 @@ function SectionCard({ children, delay = 0 }: { children: React.ReactNode; delay
 
 export default function SettingsPage() {
   const { mailbox } = useMailboxStore();
-  const [notifications, setNotifications] = useState(
-    () => localStorage.getItem("tm_notif") !== "false"
-  );
-  const [darkMode, setDarkMode]= useState(
-    () => localStorage.getItem("tm_dark") === "true"
-  );
-  const [secureStorage, setSecureStorage] = useState(
-    () => localStorage.getItem("tm_secure") !== "false"
-  );
+  const [notifications, setNotifications] = useState(() => localStorage.getItem("tm_notif") !== "false");
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("tm_dark") === "true");
+  const [secureStorage, setSecureStorage] = useState(() => localStorage.getItem("tm_secure") !== "false");
 
   return (
     <div className="flex flex-col h-full bg-[#F4F4E4] overflow-y-auto">
-      <div className="px-5 pt-6 pb-32">
+      <div className="w-full max-w-2xl mx-auto px-5 md:px-8 pt-6 pb-32">
 
         <h1 className="text-2xl font-bold text-[#1A1A1A] mb-6 anim-slide-up">Settings</h1>
 
-        {/* Email Settings */}
-        <div className="mb-4 anim-slide-up" style={{ animationDelay: "50ms" }}>
-          <p className="text-[11px] font-semibold text-[#9A9A9A] uppercase tracking-widest mb-2 px-1">
-            Email Settings
-          </p>
-          <SectionCard delay={50}>
-            <SettingRow icon={Clock}      label="Auto delete" sub="After 24 hours" />
-            <SettingRow icon={Mail}       label="Email alias" sub={mailbox?.address ?? "No mailbox active"} />
-            <SettingRow icon={PlusSquare} label="Add to home screen" />
-          </SectionCard>
-        </div>
+        {/* Desktop: 2-column layout for sections */}
+        <div className="md:grid md:grid-cols-2 md:gap-5 space-y-4 md:space-y-0">
 
-        {/* General */}
-        <div className="mb-4 anim-slide-up" style={{ animationDelay: "120ms" }}>
-          <p className="text-[11px] font-semibold text-[#9A9A9A] uppercase tracking-widest mb-2 px-1">
-            General
-          </p>
-          <SectionCard delay={120}>
-            <SettingRow
-              icon={Bell}
-              label="Notifications"
-              right={
-                <Toggle value={notifications} onChange={(v) => {
-                  setNotifications(v);
-                  localStorage.setItem("tm_notif", String(v));
-                }} />
-              }
-            />
-            <SettingRow
-              icon={Moon}
-              label="Dark mode"
-              right={
-                <Toggle value={darkMode} onChange={(v) => {
-                  setDarkMode(v);
-                  localStorage.setItem("tm_dark", String(v));
-                }} />
-              }
-            />
-            <SettingRow
-              icon={ShieldCheck}
-              label="Secure storage"
-              right={
-                <Toggle value={secureStorage} onChange={(v) => {
-                  setSecureStorage(v);
-                  localStorage.setItem("tm_secure", String(v));
-                }} />
-              }
-            />
-          </SectionCard>
-        </div>
+          {/* Email Settings */}
+          <div className="anim-slide-up" style={{ animationDelay: "50ms" }}>
+            <p className="text-[11px] font-semibold text-[#9A9A9A] uppercase tracking-widest mb-2 px-1">Email</p>
+            <SectionCard>
+              <SettingRow icon={Clock} label="Auto delete" sub="After 24 hours" />
+              <SettingRow icon={Mail} label="Email alias" sub={mailbox?.address ?? "No mailbox active"} />
+              <SettingRow icon={PlusSquare} label="Add to home screen" />
+            </SectionCard>
+          </div>
 
-        {/* About */}
-        <div className="anim-slide-up" style={{ animationDelay: "190ms" }}>
-          <p className="text-[11px] font-semibold text-[#9A9A9A] uppercase tracking-widest mb-2 px-1">
-            About
-          </p>
-          <SectionCard delay={190}>
-            <SettingRow icon={HelpCircle} label="Help & Support" />
-            <SettingRow icon={Info}       label="About Temp Mail" />
-          </SectionCard>
-        </div>
+          {/* General */}
+          <div className="anim-slide-up" style={{ animationDelay: "120ms" }}>
+            <p className="text-[11px] font-semibold text-[#9A9A9A] uppercase tracking-widest mb-2 px-1">General</p>
+            <SectionCard>
+              <SettingRow
+                icon={Bell}
+                label="Notifications"
+                right={<Toggle value={notifications} onChange={(v) => { setNotifications(v); localStorage.setItem("tm_notif", String(v)); }} />}
+              />
+              <SettingRow
+                icon={Moon}
+                label="Dark mode"
+                right={<Toggle value={darkMode} onChange={(v) => { setDarkMode(v); localStorage.setItem("tm_dark", String(v)); }} />}
+              />
+              <SettingRow
+                icon={ShieldCheck}
+                label="Secure storage"
+                right={<Toggle value={secureStorage} onChange={(v) => { setSecureStorage(v); localStorage.setItem("tm_secure", String(v)); }} />}
+              />
+            </SectionCard>
+          </div>
 
+          {/* About - spans full width on desktop */}
+          <div className="md:col-span-2 anim-slide-up" style={{ animationDelay: "190ms" }}>
+            <p className="text-[11px] font-semibold text-[#9A9A9A] uppercase tracking-widest mb-2 px-1">About</p>
+            <SectionCard>
+              <SettingRow icon={HelpCircle} label="Help & Support" />
+              <SettingRow icon={Info} label="About Temp Mail" />
+            </SectionCard>
+          </div>
+
+        </div>
       </div>
     </div>
   );

@@ -7,7 +7,7 @@ import HomePage from "@/pages/home";
 import CreatePage from "@/pages/create";
 import ActivityPage from "@/pages/activity";
 import SettingsPage from "@/pages/settings";
-import { BottomNav } from "@/components/bottom-nav";
+import { BottomNav, SideNav } from "@/components/bottom-nav";
 
 const queryClient = new QueryClient();
 
@@ -22,16 +22,18 @@ function AppWrapper() {
     <Switch>
       <Route path="/create" component={CreatePage} />
       <Route>
-        <div className="relative h-full w-full overflow-hidden">
-          <div className="h-full overflow-hidden">
+        {/* Desktop: sidebar + content. Mobile: content + floating bottom nav */}
+        <div className="flex h-full w-full overflow-hidden">
+          <SideNav />
+          <div className="flex-1 overflow-hidden relative min-w-0">
             <Switch>
-              <Route path="/" component={HomePage} />
-              <Route path="/activity" component={ActivityPage} />
-              <Route path="/settings" component={SettingsPage} />
-              <Route component={HomePage} />
+              <Route path="/"          component={HomePage}    />
+              <Route path="/activity"  component={ActivityPage} />
+              <Route path="/settings"  component={SettingsPage} />
+              <Route                   component={HomePage}    />
             </Switch>
+            <BottomNav />
           </div>
-          <BottomNav />
         </div>
       </Route>
     </Switch>
@@ -43,11 +45,9 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
         <MailboxProvider>
+          {/* Mobile: centered phone frame. Desktop: full viewport */}
           <div className="min-h-[100dvh] bg-[#E8E8D0] flex items-center justify-center">
-            <div
-              className="w-full bg-[#F4F4E4] flex flex-col overflow-hidden"
-              style={{ maxWidth: "430px", height: "100dvh", maxHeight: "900px" }}
-            >
+            <div className="w-full bg-[#F4F4E4] flex flex-col overflow-hidden h-[100dvh] max-w-[430px] max-h-[900px] md:max-w-none md:max-h-none md:rounded-none">
               <AppWrapper />
             </div>
           </div>

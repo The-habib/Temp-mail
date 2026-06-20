@@ -3,6 +3,12 @@ import { randomUUID } from "crypto";
 
 const router = Router();
 
+function safeDate(val: unknown): string {
+  if (!val) return new Date().toISOString();
+  const d = new Date(String(val).replace(" ", "T"));
+  return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+}
+
 const MAILTM_BASE   = "https://api.mail.tm";
 const GUERRILLA_BASE = "https://api.guerrillamail.com/ajax.php";
 const TEMPLOL_BASE  = "https://api.tempmail.lol";
@@ -347,7 +353,7 @@ router.get("/mailbox/:id/messages/:messageId", async (req, res) => {
         text: m.mail_body || null,
         html: null,
         seen: true,
-        createdAt: m.mail_date ? new Date(m.mail_date).toISOString() : new Date().toISOString(),
+        createdAt: safeDate(m.mail_date),
       });
       return;
     }

@@ -18,9 +18,7 @@ import {
   Trash2, ArrowLeft, Mail,
 } from "lucide-react";
 
-function pad(n: number) {
-  return String(n).padStart(2, "0");
-}
+function pad(n: number) { return String(n).padStart(2, "0"); }
 
 function avatarColor(text: string) {
   const palette = ["#EA4335","#4285F4","#34A853","#FBBC04","#FF6D00","#9C27B0","#00ACC1","#795548"];
@@ -28,6 +26,12 @@ function avatarColor(text: string) {
   for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) % palette.length;
   return palette[Math.abs(h)];
 }
+
+const PROVIDER_META: Record<string, { name: string; color: string }> = {
+  mailtm:       { name: "Mail.tm",       color: "#7AB840" },
+  guerrillamail:{ name: "Guerrilla Mail", color: "#4285F4" },
+  templol:      { name: "TempMail.lol",  color: "#FF6D00" },
+};
 
 export default function HomePage() {
   const { mailbox } = useMailboxStore();
@@ -40,7 +44,10 @@ export default function HomePage() {
   const [copied, setCopied] = useState(false);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Countdown timer
+  const providerKey = mailbox?.provider || "mailtm";
+  const providerMeta = PROVIDER_META[providerKey] ?? { name: providerKey, color: "#7AB840" };
+  const emailDomain = mailbox?.address?.split("@")[1] || "";
+
   useEffect(() => {
     if (!mailbox?.createdAt) return;
     const tick = () => {
@@ -118,21 +125,21 @@ export default function HomePage() {
   const unreadCount = messages.filter((m) => !m.seen).length;
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-[#F4F4E4]">
-      <div className="flex-1 overflow-y-auto overscroll-contain">
+    <div className="flex flex-col md:flex-row h-full overflow-y-auto md:overflow-hidden bg-[#F4F4E4]">
 
-        {/* ── Email card section ── */}
+      {/* ── LEFT: Email card ─────────────────────────────────────── */}
+      <div className="md:w-[300px] lg:w-[340px] md:flex-shrink-0 md:h-full md:overflow-y-auto md:border-r md:border-[#E8E8D8]">
         <div className="px-5 pt-6 pb-5 anim-slide-up">
 
           {/* Header */}
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center justify-between mb-4">
             <h1 className="text-lg font-semibold text-[#1A1A1A] tracking-tight">Your Temp Email</h1>
             <span className="w-2.5 h-2.5 bg-[#7AB840] rounded-full inline-block shadow-[0_0_6px_#7AB840]" />
           </div>
 
-          {/* Illustration */}
-          <div className="flex justify-center mb-5">
-            <svg viewBox="0 0 220 140" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-48 h-auto">
+          {/* Illustration — hidden on desktop */}
+          <div className="flex justify-center mb-5 md:hidden">
+            <svg viewBox="0 0 220 140" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-44 h-auto">
               <ellipse cx="24"  cy="116" rx="20" ry="34" fill="#7AB840" transform="rotate(-16 24 116)" />
               <ellipse cx="12"  cy="105" rx="13" ry="22" fill="#5A9030" transform="rotate(-32 12 105)" />
               <ellipse cx="196" cy="116" rx="20" ry="34" fill="#7AB840" transform="rotate(16 196 116)" />
@@ -157,7 +164,7 @@ export default function HomePage() {
 
           {/* Email address pill */}
           <div
-            className={`rounded-full px-5 py-3.5 flex items-center justify-between mb-5 transition-all duration-300 ${
+            className={`rounded-full px-5 py-3.5 flex items-center justify-between mb-2 transition-all duration-300 ${
               copied ? "bg-[#5A9030]" : "bg-[#7AB840]"
             }`}
           >
@@ -184,6 +191,19 @@ export default function HomePage() {
             </button>
           </div>
 
+          {/* Provider badge */}
+          <div className="flex items-center gap-2 mb-5 px-1">
+            <span
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
+              style={{ backgroundColor: providerMeta.color }}
+            >
+              {providerMeta.name}
+            </span>
+            {emailDomain && (
+              <span className="text-xs text-[#9A9A9A]">· @{emailDomain}</span>
+            )}
+          </div>
+
           {/* Countdown */}
           <p className="text-xs text-[#8A8A7A] mb-3">This email will expire in</p>
           <div className="flex items-start justify-center gap-1 mb-5">
@@ -196,19 +216,13 @@ export default function HomePage() {
             ].map((item, i) => {
               if (item.val === null) {
                 return (
-                  <div key={i} className="text-3xl font-light text-[#C8C8A8] mt-1 px-0.5 leading-none">
-                    :
-                  </div>
+                  <div key={i} className="text-3xl font-light text-[#C8C8A8] mt-1 px-0.5 leading-none">:</div>
                 );
               }
               return (
                 <div key={i} className="flex-1 text-center">
-                  <div className="text-4xl font-bold text-[#1A1A1A] tabular-nums leading-none">
-                    {pad(item.val)}
-                  </div>
-                  <div className="text-[10px] text-[#9A9A9A] mt-1.5 uppercase tracking-widest">
-                    {item.label}
-                  </div>
+                  <div className="text-4xl font-bold text-[#1A1A1A] tabular-nums leading-none">{pad(item.val)}</div>
+                  <div className="text-[10px] text-[#9A9A9A] mt-1.5 uppercase tracking-widest">{item.label}</div>
                 </div>
               );
             })}
@@ -249,9 +263,11 @@ export default function HomePage() {
             <ChevronRight className="h-4 w-4 text-[#C8C8C0]" />
           </div>
         </div>
+      </div>
 
-        {/* ── Inbox section ── */}
-        <div className="bg-white rounded-t-[28px] px-5 pt-6 pb-36 min-h-[44vh] shadow-[0_-4px_16px_rgba(0,0,0,0.04)]">
+      {/* ── RIGHT: Inbox ─────────────────────────────────────────── */}
+      <div className="flex-1 bg-white md:h-full md:overflow-y-auto">
+        <div className="rounded-t-[28px] md:rounded-none px-5 pt-6 pb-36 md:pb-8 min-h-[44vh] md:min-h-0 shadow-[0_-4px_16px_rgba(0,0,0,0.04)] md:shadow-none">
 
           {/* Inbox header */}
           <div className="flex items-center justify-between mb-4">
@@ -263,9 +279,7 @@ export default function HomePage() {
                 </span>
               )}
             </div>
-            {isFetching && (
-              <RefreshCw className="h-3.5 w-3.5 text-[#BCBCCC] animate-spin" />
-            )}
+            {isFetching && <RefreshCw className="h-3.5 w-3.5 text-[#BCBCCC] animate-spin" />}
           </div>
 
           {/* Filter tabs */}
@@ -289,7 +303,7 @@ export default function HomePage() {
           {isLoadingMessages ? (
             <div className="space-y-5">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="flex items-start gap-3" style={{ animationDelay: `${i * 60}ms` }}>
+                <div key={i} className="flex items-start gap-3">
                   <Skeleton className="w-10 h-10 rounded-full flex-shrink-0" />
                   <div className="flex-1 space-y-2">
                     <div className="flex justify-between">
@@ -334,9 +348,7 @@ export default function HomePage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-0.5">
-                        <span className="font-semibold text-sm text-[#1A1A1A] truncate mr-2">
-                          {senderText}
-                        </span>
+                        <span className="font-semibold text-sm text-[#1A1A1A] truncate mr-2">{senderText}</span>
                         <span className="text-[11px] text-[#ACACAC] flex-shrink-0">
                           {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: false })}
                         </span>
@@ -357,13 +369,12 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* ── Message detail sheet ── */}
+      {/* ── Message detail sheet ──────────────────────────────────── */}
       <Sheet open={!!selectedMessageId} onOpenChange={(open) => !open && setSelectedMessageId(null)}>
         <SheetContent
           side="bottom"
-          className="h-[90vh] rounded-t-[24px] p-0 border-0 bg-white focus-visible:outline-none"
+          className="h-[90vh] md:h-[85vh] rounded-t-[24px] p-0 border-0 bg-white focus-visible:outline-none"
         >
-          {/* Drag handle */}
           <div className="flex justify-center pt-3 pb-1">
             <div className="w-10 h-1 bg-[#E0E0D8] rounded-full" />
           </div>
@@ -379,7 +390,7 @@ export default function HomePage() {
               </div>
             </div>
           ) : selectedMessage ? (
-            <div className="flex flex-col h-[calc(90vh-28px)] overflow-hidden anim-slide-up">
+            <div className="flex flex-col h-[calc(90vh-28px)] md:h-[calc(85vh-28px)] overflow-hidden anim-slide-up">
               {/* Sheet header */}
               <div className="px-5 pt-3 pb-4 border-b border-[#F2F2EE] flex-none">
                 <div className="flex items-start gap-2 mb-3">
@@ -400,7 +411,6 @@ export default function HomePage() {
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
-
                 <div className="space-y-1 text-xs pl-10">
                   <div className="flex gap-3">
                     <span className="text-[#ACACAC] w-8 flex-shrink-0">From</span>
@@ -412,14 +422,12 @@ export default function HomePage() {
                   </div>
                   <div className="flex gap-3">
                     <span className="text-[#ACACAC] w-8 flex-shrink-0">Date</span>
-                    <span className="text-[#6A6A6A]">
-                      {new Date(selectedMessage.createdAt).toLocaleString()}
-                    </span>
+                    <span className="text-[#6A6A6A]">{new Date(selectedMessage.createdAt).toLocaleString()}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Email body — raw, untouched */}
+              {/* Email body */}
               <div className="flex-1 overflow-auto bg-white">
                 {selectedMessage.html ? (
                   <iframe

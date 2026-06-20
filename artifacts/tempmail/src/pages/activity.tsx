@@ -17,49 +17,25 @@ function BarChart({ messages }: { messages: Msg[] }) {
 
   return (
     <svg viewBox="0 0 280 116" className="w-full" xmlns="http://www.w3.org/2000/svg">
-      {/* Grid lines */}
       {[0, 0.33, 0.66, 1].map((pct, idx) => (
-        <line
-          key={idx}
-          x1="8" y1={90 - pct * 76} x2="272" y2={90 - pct * 76}
-          stroke="#F0F0E4" strokeWidth="1"
-        />
+        <line key={idx} x1="8" y1={90 - pct * 76} x2="272" y2={90 - pct * 76} stroke="#F0F0E4" strokeWidth="1" />
       ))}
-      {/* Bars */}
       {days.map((day, i) => {
         const barH = Math.max((counts[i] / max) * 76, 8);
         const x = 16 + i * 36;
         const y = 90 - barH;
         const isToday = i === todayBarIdx;
         const hasCount = counts[i] > 0;
-
         return (
           <g key={day}>
-            <rect
-              x={x} y={y} width={24} height={barH} rx={5}
-              fill={isToday ? "#7AB840" : "#DFE9C8"}
-            />
-            <text
-              x={x + 12} y={106}
-              textAnchor="middle"
-              fill={isToday ? "#5A5A5A" : "#ACACAC"}
-              fontSize="8.5"
-              fontFamily="Inter, sans-serif"
-              fontWeight={isToday ? "600" : "400"}
-            >
+            <rect x={x} y={y} width={24} height={barH} rx={5} fill={isToday ? "#7AB840" : "#DFE9C8"} />
+            <text x={x + 12} y={106} textAnchor="middle" fill={isToday ? "#5A5A5A" : "#ACACAC"} fontSize="8.5" fontFamily="Inter, sans-serif" fontWeight={isToday ? "600" : "400"}>
               {day}
             </text>
             {isToday && hasCount && (
               <g>
                 <circle cx={x + 12} cy={y - 12} r={11} fill="#1A1A1A" />
-                <text
-                  x={x + 12} y={y - 8}
-                  textAnchor="middle"
-                  fill="white"
-                  fontSize="8.5"
-                  fontWeight="bold"
-                  fontFamily="Inter, sans-serif"
-                >
+                <text x={x + 12} y={y - 8} textAnchor="middle" fill="white" fontSize="8.5" fontWeight="bold" fontFamily="Inter, sans-serif">
                   {counts[i]}
                 </text>
               </g>
@@ -110,7 +86,7 @@ export default function ActivityPage() {
 
   return (
     <div className="flex flex-col h-full bg-[#F4F4E4] overflow-y-auto">
-      <div className="px-5 pt-6 pb-32">
+      <div className="w-full max-w-3xl mx-auto px-5 md:px-8 pt-6 pb-32">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6 anim-slide-up">
@@ -142,19 +118,13 @@ export default function ActivityPage() {
         </div>
 
         {/* Bar chart */}
-        <div
-          className="bg-white rounded-2xl p-4 mb-4 shadow-[0_1px_4px_rgba(0,0,0,0.05)] anim-slide-up"
-          style={{ animationDelay: "170ms" }}
-        >
+        <div className="bg-white rounded-2xl p-4 mb-4 shadow-[0_1px_4px_rgba(0,0,0,0.05)] anim-slide-up" style={{ animationDelay: "170ms" }}>
           <h2 className="font-semibold text-[#1A1A1A] mb-4 text-sm">Recent Activity</h2>
           <BarChart messages={messages} />
         </div>
 
         {/* Tips */}
-        <div
-          className="bg-white rounded-2xl p-4 shadow-[0_1px_4px_rgba(0,0,0,0.05)] anim-slide-up"
-          style={{ animationDelay: "230ms" }}
-        >
+        <div className="bg-white rounded-2xl p-4 shadow-[0_1px_4px_rgba(0,0,0,0.05)] anim-slide-up" style={{ animationDelay: "230ms" }}>
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1">
               <h2 className="font-semibold text-[#1A1A1A] mb-1 text-sm">Tips</h2>
