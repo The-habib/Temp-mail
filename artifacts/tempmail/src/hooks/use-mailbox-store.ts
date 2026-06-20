@@ -6,6 +6,7 @@ const STORAGE_KEY = "tempmail_mailbox";
 interface MailboxContextType {
   mailbox: Mailbox | null;
   setMailbox: (mailbox: Mailbox | null) => void;
+  clearMailbox: () => void;
 }
 
 const MailboxContext = createContext<MailboxContextType | null>(null);
@@ -14,11 +15,7 @@ export function MailboxProvider({ children }: { children: ReactNode }) {
   const [mailbox, setMailboxState] = useState<Mailbox | null>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch {
-        return null;
-      }
+      try { return JSON.parse(stored); } catch { return null; }
     }
     return null;
   });
@@ -32,7 +29,13 @@ export function MailboxProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  return createElement(MailboxContext.Provider, { value: { mailbox, setMailbox } }, children);
+  const clearMailbox = () => setMailbox(null);
+
+  return createElement(
+    MailboxContext.Provider,
+    { value: { mailbox, setMailbox, clearMailbox } },
+    children
+  );
 }
 
 export function useMailboxStore() {

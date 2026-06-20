@@ -34,7 +34,7 @@ const PROVIDER_META: Record<string, { name: string; color: string }> = {
 };
 
 export default function HomePage() {
-  const { mailbox } = useMailboxStore();
+  const { mailbox, clearMailbox } = useMailboxStore();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
@@ -68,13 +68,29 @@ export default function HomePage() {
     isLoading: isLoadingMessages,
     isFetching,
     refetch,
+    error: messagesError,
   } = useGetMessages(mailbox?.id ?? "", {
     query: {
       enabled: !!mailbox?.id,
       refetchInterval: 5000,
       queryKey: getGetMessagesQueryKey(mailbox?.id ?? ""),
+      retry: (failureCount, error: unknown) => {
+        // Don't retry 401s — session is gone
+        const status = (error as { status?: number })?.status;
+        if (status === 401) return false;
+        return failureCount < 2;
+      },
     },
   });
+
+  // If the session has expired on the server side, clear local state and go home
+  useEffect(() => {
+    const status = (messagesError as { status?: number } | null)?.status;
+    if (status === 401) {
+      clearMailbox();
+      toast({ title: "Session expired", description: "Your mailbox session is no longer valid. Please create a new one." });
+    }
+  }, [messagesError]);
 
   const { data: selectedMessage, isLoading: isLoadingMessage } = useGetMessage(
     mailbox?.id ?? "",
