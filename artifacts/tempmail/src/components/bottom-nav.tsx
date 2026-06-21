@@ -1,6 +1,7 @@
 import { useLocation } from "wouter";
-import { Mail, BarChart2, Settings } from "lucide-react";
+import { Mail, BarChart2, Settings, Globe } from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
+import { useGetProviders } from "@workspace/api-client-react";
 
 const navItems = [
   { path: "/activity", icon: BarChart2, label: "Activity", color: "#60A5FA" },
@@ -30,13 +31,11 @@ export function BottomNav() {
   const prevActiveIdx                 = useRef(-1);
   const activeIdx                     = navItems.findIndex(({ path }) => isActive(path));
 
-  /* mount slide-up */
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 100);
     return () => clearTimeout(t);
   }, []);
 
-  /* icon bounce when active tab changes */
   useEffect(() => {
     if (activeIdx >= 0 && activeIdx !== prevActiveIdx.current) {
       setBouncingIdx(activeIdx);
@@ -46,7 +45,6 @@ export function BottomNav() {
     }
   }, [activeIdx]);
 
-  /* fire ripple from button center */
   const fireRipple = useCallback((idx: number) => {
     const id = Date.now();
     setRipples(r => [...r, { id, idx }]);
@@ -64,7 +62,6 @@ export function BottomNav() {
         transition: "transform 700ms cubic-bezier(0.34,1.56,0.64,1), opacity 450ms ease",
       }}
     >
-      {/* Ambient glow orb that tracks active tab */}
       <div
         aria-hidden
         style={{
@@ -99,7 +96,7 @@ export function BottomNav() {
           ].join(", "),
         }}
       >
-        {/* ── Sliding active pill ───────────────────────────────── */}
+        {/* Sliding active pill */}
         <div
           aria-hidden
           style={{
@@ -122,7 +119,6 @@ export function BottomNav() {
             zIndex:       0,
           }}
         >
-          {/* shimmer sweep across the pill */}
           <span
             style={{
               position:   "absolute",
@@ -137,7 +133,6 @@ export function BottomNav() {
           />
         </div>
 
-        {/* ── Buttons ───────────────────────────────────────────── */}
         {navItems.map(({ path, icon: Icon, label, color }, idx) => {
           const active  = idx === activeIdx;
           const pressed = idx === pressedIdx;
@@ -161,7 +156,6 @@ export function BottomNav() {
                 transition:   "transform 180ms cubic-bezier(0.34,1.56,0.64,1)",
               }}
             >
-              {/* ripple ring */}
               {ripples
                 .filter(r => r.idx === idx)
                 .map(r => (
@@ -183,7 +177,6 @@ export function BottomNav() {
                   />
                 ))}
 
-              {/* glow dot below icon (active only) */}
               <span
                 aria-hidden
                 style={{
@@ -204,7 +197,6 @@ export function BottomNav() {
                 }}
               />
 
-              {/* Icon */}
               <span
                 style={{
                   display:         "flex",
@@ -229,7 +221,6 @@ export function BottomNav() {
                 />
               </span>
 
-              {/* Label — slides in when active */}
               <span
                 aria-hidden={!active}
                 style={{
@@ -264,6 +255,9 @@ export function BottomNav() {
 export function SideNav() {
   const [, navigate] = useLocation();
   const isActive = useIsActive();
+  const { data: providers } = useGetProviders();
+  const customDomain = providers?.find((p) => p.id === "custom")?.name?.replace("@", "");
+  const hasCustom = !!customDomain;
 
   return (
     <aside
@@ -300,14 +294,51 @@ export function SideNav() {
             </button>
           );
         })}
+
+        {/* Custom domain shortcut */}
+        <button
+          onClick={() => navigate("/setup")}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-left mt-2 ${
+            isActive("/setup")
+              ? "bg-[#1A1A1A] text-white shadow-[0_2px_8px_rgba(0,0,0,0.15)]"
+              : hasCustom
+              ? "text-[#7C3AED] hover:bg-[#F3E8FF]"
+              : "text-[#7A7A7A] hover:bg-[#F0F0E4] hover:text-[#1A1A1A]"
+          }`}
+        >
+          <Globe className="h-4 w-4 flex-shrink-0" strokeWidth={isActive("/setup") ? 2.2 : 1.8} />
+          <span className="flex-1 truncate">{hasCustom ? `@${customDomain}` : "Own Domain"}</span>
+          {hasCustom && (
+            <span className="w-2 h-2 rounded-full bg-[#7AB840] shadow-[0_0_5px_rgba(122,184,64,0.7)] flex-shrink-0" />
+          )}
+          {!hasCustom && isActive("/setup") && (
+            <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#7AB840]" />
+          )}
+        </button>
       </nav>
 
       {/* Footer */}
       <div className="px-5 pb-5 pt-3 border-t border-[#F0F0E8]">
-        <div className="flex items-center justify-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#7AB840] shadow-[0_0_4px_#7AB840]" />
-          <p className="text-[10px] text-[#ABABAB] font-medium">Privacy-first email</p>
-        </div>
+        {hasCustom ? (
+          <button
+            onClick={() => navigate("/setup")}
+            className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-[#F3E8FF] transition-colors"
+          >
+            <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "linear-gradient(135deg, #7C3AED, #A855F7)" }}>
+              <Globe className="h-3 w-3 text-white" />
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-[10px] font-bold text-[#7C3AED] truncate">@{customDomain}</p>
+              <p className="text-[9px] text-[#9A9A9A]">Custom domain · active</p>
+            </div>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#7AB840] shadow-[0_0_5px_rgba(122,184,64,0.7)] flex-shrink-0" />
+          </button>
+        ) : (
+          <div className="flex items-center justify-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#7AB840] shadow-[0_0_4px_#7AB840]" />
+            <p className="text-[10px] text-[#ABABAB] font-medium">Privacy-first email</p>
+          </div>
+        )}
       </div>
     </aside>
   );

@@ -16,7 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
   Copy, Check, RefreshCw, Edit3, Clock, Trash2, ArrowLeft,
-  Mail, Inbox, Sparkles, ShieldCheck, Bell, BellOff,
+  Mail, Inbox, Sparkles, ShieldCheck, Bell, BellOff, Plus,
 } from "lucide-react";
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
@@ -347,14 +347,27 @@ export default function HomePage() {
                 </span>
               )}
             </div>
-            <button
-              onClick={() => refetch()}
-              disabled={isFetching || !mailbox}
-              className="w-8 h-8 rounded-full bg-[#F4F4EA] flex items-center justify-center hover:bg-[#EAEADC] disabled:opacity-40 transition-colors"
-              data-testid="button-refresh"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 text-[#6A6A6A] ${isFetching ? "animate-spin" : ""}`} />
-            </button>
+            <div className="flex items-center gap-2">
+              {providerKey === "custom" && (
+                <button
+                  onClick={() => navigate("/create")}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all"
+                  style={{ background: "linear-gradient(135deg, #7C3AED, #A855F7)", color: "white", boxShadow: "0 2px 8px rgba(124,58,237,0.35)" }}
+                  title="Create another address at this domain"
+                >
+                  <Plus className="h-3 w-3" />
+                  New Address
+                </button>
+              )}
+              <button
+                onClick={() => refetch()}
+                disabled={isFetching || !mailbox}
+                className="w-8 h-8 rounded-full bg-[#F4F4EA] flex items-center justify-center hover:bg-[#EAEADC] disabled:opacity-40 transition-colors"
+                data-testid="button-refresh"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 text-[#6A6A6A] ${isFetching ? "animate-spin" : ""}`} />
+              </button>
+            </div>
           </div>
 
           {/* Filter tabs */}

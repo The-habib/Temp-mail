@@ -20,6 +20,7 @@ function AppWrapper() {
       <Switch>
         <Route path="/setup" component={SetupPage} />
         <Route path="/create" component={CreatePage} />
+        <Route path="/settings" component={SettingsPage} />
         <Route component={WelcomePage} />
       </Switch>
     );

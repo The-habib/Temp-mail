@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import {
   ArrowLeft, ArrowRight, Check, Copy, ExternalLink,
   Globe, Key, Wifi, CheckCircle2, AlertCircle, Loader2,
+  Settings2, RefreshCw, Zap,
 } from "lucide-react";
 
 type Step = 1 | 2 | 3 | 4;
@@ -20,6 +21,12 @@ interface SetupResult {
     mx: DnsRecord[];
     spf: DnsRecord | null;
   };
+}
+
+interface ExistingConfig {
+  configured: boolean;
+  domain?: string;
+  configuredAt?: string;
 }
 
 function CopyField({ value, label }: { value: string; label?: string }) {
@@ -65,6 +72,17 @@ export default function SetupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<SetupResult | null>(null);
+  const [existing, setExisting] = useState<ExistingConfig | null>(null);
+  const [statusLoading, setStatusLoading] = useState(true);
+  const [reconfiguring, setReconfiguring] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/setup/status")
+      .then((r) => r.json())
+      .then((d) => setExisting(d as ExistingConfig))
+      .catch(() => setExisting({ configured: false }))
+      .finally(() => setStatusLoading(false));
+  }, []);
 
   const handleConfigure = async () => {
     if (!apiKey.trim() || !domain.trim()) return;
@@ -81,6 +99,7 @@ export default function SetupPage() {
         setError(data.error || "Something went wrong. Please try again.");
       } else {
         setResult({ domain: data.domain!, dnsRecords: data.dnsRecords! });
+        setExisting({ configured: true, domain: data.domain, configuredAt: new Date().toISOString() });
         setStep(4);
       }
     } catch {
@@ -97,20 +116,165 @@ export default function SetupPage() {
     { n: 4, label: "DNS records" },
   ];
 
+  const configuredDate = existing?.configuredAt
+    ? new Date(existing.configuredAt).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+    : null;
+
+  /* ── Already-configured landing ────────────────────────────── */
+  if (!statusLoading && existing?.configured && !reconfiguring && !result) {
+    return (
+      <div className="flex flex-col h-full bg-[#F4F4E4] overflow-y-auto pb-10">
+        {/* Header */}
+        <div className="px-5 pt-5 flex items-center gap-3 mb-5">
+          <button
+            onClick={() => navigate("/")}
+            className="w-9 h-9 flex items-center justify-center text-[#7A7A7A] hover:text-[#1A1A1A] rounded-full hover:bg-[#E8E8D8] -ml-1"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <div>
+            <h1 className="text-xl font-bold text-[#1A1A1A]">Domain Setup</h1>
+            <p className="text-xs text-[#7A7A7A]">Receive real emails on your domain</p>
+          </div>
+        </div>
+
+        <div className="px-5 space-y-4">
+          {/* Connected hero card */}
+          <div
+            className="relative rounded-3xl overflow-hidden"
+            style={{ background: "linear-gradient(145deg, #0D0218 0%, #1C0D38 55%, #0D0218 100%)" }}
+          >
+            <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full opacity-[0.06]"
+              style={{ background: "radial-gradient(circle, #A855F7, transparent)" }} />
+            <div className="absolute -bottom-10 -left-10 w-36 h-36 rounded-full opacity-[0.06]"
+              style={{ background: "radial-gradient(circle, #7AB840, transparent)" }} />
+            <div className="relative p-6">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "rgba(124,58,237,0.25)" }}>
+                  <Globe className="h-6 w-6 text-[#C084FC]" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-white/50 text-[10px] font-semibold uppercase tracking-widest mb-0.5">Custom Domain</p>
+                  <p className="text-white font-extrabold text-xl leading-tight">@{existing.domain}</p>
+                </div>
+                <div className="flex items-center gap-1.5 bg-[#7AB840]/20 px-3 py-1.5 rounded-full">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-[#7AB840]" />
+                  <span className="text-[#7AB840] text-[11px] font-bold">ACTIVE</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 mb-5">
+                {[
+                  { label: "Domain", value: existing.domain! },
+                  { label: "Connected", value: configuredDate ?? "Recently" },
+                  { label: "Provider", value: "Brevo Inbound" },
+                  { label: "Expiry", value: "Never", accent: "#7AB840" },
+                ].map(({ label, value, accent }) => (
+                  <div key={label} className="bg-white/[0.06] rounded-xl px-3 py-2.5 border border-white/[0.07]">
+                    <p className="text-white/40 text-[10px] font-semibold uppercase tracking-wide mb-0.5">{label}</p>
+                    <p className="text-xs font-semibold truncate" style={{ color: accent ?? "rgba(255,255,255,0.85)" }}>{value}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => navigate("/create")}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white transition-all"
+                  style={{ background: "rgba(122,184,64,0.25)", border: "1px solid rgba(122,184,64,0.35)" }}
+                >
+                  <Zap className="h-4 w-4 text-[#7AB840]" />
+                  New Address
+                </button>
+                <button
+                  onClick={() => setReconfiguring(true)}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white/70 hover:text-white transition-all"
+                  style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)" }}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Reconfigure
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* DNS reminder */}
+          <div className="bg-white rounded-2xl p-5 shadow-[0_1px_8px_rgba(0,0,0,0.05)]">
+            <div className="flex items-center gap-2 mb-3">
+              <Wifi className="h-4 w-4 text-[#7C3AED]" />
+              <p className="text-sm font-bold text-[#1A1A1A]">DNS Records Required</p>
+            </div>
+            <p className="text-xs text-[#6A6A6A] leading-relaxed mb-3">
+              Make sure these records are set at your domain registrar. DNS propagation takes 5–30 minutes.
+            </p>
+            <div className="space-y-2">
+              <div className="bg-[#F0F0E4] rounded-xl px-3 py-2.5 border border-[#E0E0D0]">
+                <p className="text-[10px] text-[#9A9A9A] font-semibold uppercase tracking-widest mb-1">MX Record</p>
+                <div className="flex items-center gap-2">
+                  <span className="bg-[#E8E8F8] text-[#4A4A9A] px-2 py-0.5 rounded text-[10px] font-bold">MX</span>
+                  <span className="font-mono text-xs text-[#1A1A1A] truncate">{existing.domain} → inbound.brevo.com (priority 10)</span>
+                </div>
+              </div>
+              <div className="bg-[#F0F0E4] rounded-xl px-3 py-2.5 border border-[#E0E0D0]">
+                <p className="text-[10px] text-[#9A9A9A] font-semibold uppercase tracking-widest mb-1">SPF Record (TXT)</p>
+                <div className="flex items-center gap-2">
+                  <span className="bg-[#FEF3C7] text-[#92400E] px-2 py-0.5 rounded text-[10px] font-bold">TXT</span>
+                  <span className="font-mono text-xs text-[#1A1A1A] truncate">v=spf1 include:spf.brevo.com ~all</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* How it works */}
+          <div className="bg-[#EDFAD3] rounded-2xl px-5 py-4 border border-[#C8E890]">
+            <p className="text-xs font-bold text-[#2A5A00] mb-2">How emails arrive</p>
+            <div className="space-y-1.5">
+              {[
+                "Someone sends email to any@" + existing.domain,
+                "Brevo receives it via your MX record",
+                "Brevo posts it to your app's webhook",
+                "It appears in your inbox here in seconds",
+              ].map((step, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="w-5 h-5 bg-[#7AB840] rounded-full flex items-center justify-center flex-shrink-0 text-white text-[10px] font-bold">{i + 1}</span>
+                  <span className="text-xs text-[#3A5A18] font-medium">{step}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Setup wizard (new or reconfiguring) ───────────────────── */
   return (
     <div className="flex flex-col h-full bg-[#F4F4E4] overflow-y-auto pb-10">
       {/* Header */}
       <div className="px-5 pt-5 flex items-center gap-3 mb-5">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => {
+            if (reconfiguring) { setReconfiguring(false); setStep(1); setError(""); }
+            else navigate("/");
+          }}
           className="w-9 h-9 flex items-center justify-center text-[#7A7A7A] hover:text-[#1A1A1A] rounded-full hover:bg-[#E8E8D8] -ml-1"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div>
-          <h1 className="text-xl font-bold text-[#1A1A1A]">Domain Setup</h1>
-          <p className="text-xs text-[#7A7A7A]">Receive real emails on your domain</p>
+          <h1 className="text-xl font-bold text-[#1A1A1A]">
+            {reconfiguring ? "Reconfigure Domain" : "Domain Setup"}
+          </h1>
+          <p className="text-xs text-[#7A7A7A]">
+            {reconfiguring ? `Replacing @${existing?.domain}` : "Receive real emails on your domain"}
+          </p>
         </div>
+        {reconfiguring && (
+          <div className="ml-auto flex items-center gap-1.5 bg-[#FEF3C7] px-2.5 py-1 rounded-full border border-[#FDE68A]">
+            <Settings2 className="h-3 w-3 text-[#92400E]" />
+            <span className="text-[10px] font-bold text-[#92400E]">RECONFIGURING</span>
+          </div>
+        )}
       </div>
 
       {/* Step progress */}
@@ -198,7 +362,7 @@ export default function SetupPage() {
               onChange={(e) => setDomain(e.target.value)}
               className="w-full bg-[#F4F4E4] rounded-xl px-4 py-3 text-sm text-[#1A1A1A] placeholder-[#BCBCBC] outline-none border-2 border-transparent focus:border-[#7AB840] transition-colors font-mono"
             />
-            <p className="text-xs text-[#9A9A9A] mt-1.5">e.g. mail.yourdomain.com</p>
+            <p className="text-xs text-[#9A9A9A] mt-1.5">e.g. mail.yourdomain.com or yourdomain.com</p>
           </div>
 
           <div className="flex gap-3">
@@ -337,7 +501,8 @@ export default function SetupPage() {
 
           <div className="bg-[#FFFBEB] rounded-2xl px-4 py-3 border border-[#FDE68A]">
             <p className="text-xs text-[#92400E] leading-relaxed">
-              <strong>DNS changes take 5–30 minutes to propagate.</strong> Once done, emails sent to any address at <code className="font-mono bg-white px-1 rounded">{result.domain}</code> will appear in your inbox here.
+              <strong>DNS changes take 5–30 minutes to propagate.</strong> Once done, emails sent to any address at{" "}
+              <code className="font-mono bg-white px-1 rounded">{result.domain}</code> will appear in your inbox here.
             </p>
           </div>
 
