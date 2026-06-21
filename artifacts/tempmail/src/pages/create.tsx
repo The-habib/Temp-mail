@@ -3,7 +3,8 @@ import { useLocation } from "wouter";
 import { useGetProviderDomains, useCreateMailbox } from "@workspace/api-client-react";
 import { useMailboxStore } from "@/hooks/use-mailbox-store";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Check, Shield, Globe, ChevronRight, Shuffle, Info } from "lucide-react";
+import { useSavedAddresses } from "@/hooks/use-saved-addresses";
+import { ArrowLeft, Check, Shield, Globe, ChevronRight, Shuffle, Info, Bookmark, X } from "lucide-react";
 
 type ProviderKey = "mailtm" | "guerrillamail";
 
@@ -49,6 +50,7 @@ export default function CreatePage() {
   const [, navigate] = useLocation();
   const { setMailbox } = useMailboxStore();
   const { toast } = useToast();
+  const { saved, save: saveAddress, remove: removeSaved } = useSavedAddresses();
   const domainScrollRef = useRef<HTMLDivElement>(null);
 
   const [mode, setMode] = useState<"random" | "custom">("random");
@@ -96,6 +98,14 @@ export default function CreatePage() {
       {
         onSuccess: (data) => {
           setMailbox(data);
+          if (mode === "custom" && customUsername.trim()) {
+            saveAddress({
+              username: customUsername.trim().toLowerCase().replace(/[^a-z0-9._-]/g, ""),
+              domain: selectedDomain || domains[0]?.domain || "",
+              address: data.address,
+              provider: selectedProvider,
+            });
+          }
           toast({ title: "Mailbox created!", description: data.address });
           navigate("/");
         },
@@ -316,6 +326,44 @@ export default function CreatePage() {
               </div>
             )}
           </div>
+
+          {/* ── Saved addresses ───────────────────────────────────── */}
+          {mode === "custom" && saved.length > 0 && (
+            <div className="mt-3">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Bookmark className="h-3 w-3 text-[#9A9A9A]" />
+                <span className="text-[11px] font-semibold text-[#9A9A9A] uppercase tracking-widest">Saved</span>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {saved.map((s) => (
+                  <div
+                    key={s.id}
+                    className="flex items-center gap-2 bg-white rounded-xl px-3 py-2.5 border border-[#E8E8D8] group"
+                  >
+                    <button
+                      className="flex-1 min-w-0 text-left"
+                      onClick={() => {
+                        setCustomUsername(s.username);
+                        if (s.provider === selectedProvider && s.domain && currentProvider.supportsDomain) {
+                          setSelectedDomain(s.domain);
+                        }
+                      }}
+                    >
+                      <span className="text-sm font-medium text-[#1A1A1A] truncate block">{s.address}</span>
+                      <span className="text-[10px] text-[#ABABAB] capitalize">{s.provider}</span>
+                    </button>
+                    <button
+                      onClick={() => removeSaved(s.id)}
+                      className="w-6 h-6 flex items-center justify-center rounded-full text-[#BCBCBC] hover:text-[#FF5A5A] hover:bg-[#FFF0F0] transition-colors flex-shrink-0"
+                      title="Remove saved address"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
