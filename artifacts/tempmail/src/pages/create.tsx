@@ -276,7 +276,7 @@ export default function CreatePage() {
           <div>
             <p className="text-sm text-[#5B21B6] font-semibold mb-0.5">Emails land in your real inbox</p>
             <p className="text-xs text-[#7C3AED] leading-relaxed">
-              Emails sent to this address arrive here instantly via Mailgun. Make sure MX records are pointed at Mailgun for your domain.
+              Emails sent to this address arrive here instantly via Brevo. Make sure you've completed domain setup with your MX records pointing at Brevo.
             </p>
           </div>
         </div>

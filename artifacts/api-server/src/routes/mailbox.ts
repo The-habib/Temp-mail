@@ -5,7 +5,7 @@ import type { ProviderKey } from "../lib/session-store.js";
 import { db } from "@workspace/db";
 import { mailboxesTable, emailsTable } from "@workspace/db/schema";
 import { eq, desc } from "drizzle-orm";
-import { readMailgunConfig } from "../lib/mailgun-config.js";
+import { readBrevoConfig } from "../lib/brevo-config.js";
 
 const router = Router();
 
@@ -80,7 +80,7 @@ function generateLocalPart(): string {
 // ─── /providers ─────────────────────────────────────────────────────────────
 
 router.get("/providers", (_req, res) => {
-  const customDomain = readMailgunConfig()?.domain ?? process.env["MAILGUN_DOMAIN"];
+  const customDomain = readBrevoConfig()?.domain ?? process.env["BREVO_DOMAIN"];
   const providers = [
     { id: "mailtm",        name: "Mail.tm",        description: "Fast & reliable",   supportsCustom: true  },
     { id: "guerrillamail", name: "Guerrilla Mail",  description: "Classic & trusted", supportsCustom: true  },
@@ -107,7 +107,7 @@ router.get("/domains", async (req, res) => {
   if (provider === "templol")       { res.json([]);                 return; }
 
   if (provider === "custom") {
-    const domain = readMailgunConfig()?.domain ?? process.env["MAILGUN_DOMAIN"];
+    const domain = readBrevoConfig()?.domain ?? process.env["BREVO_DOMAIN"];
     if (!domain) { res.json([]); return; }
     res.json([{ id: domain, domain, isActive: true }]);
     return;
@@ -134,9 +134,9 @@ router.post("/mailbox", async (req, res) => {
     address: string; password: string; provider?: ProviderKey | "custom"; localPart?: string;
   };
 
-  // ── Custom domain (Mailgun inbound) ───────────────────────────────────────
+  // ── Custom domain (Brevo inbound) ────────────────────────────────────────
   if (provider === "custom") {
-    const domain = readMailgunConfig()?.domain ?? process.env["MAILGUN_DOMAIN"];
+    const domain = readBrevoConfig()?.domain ?? process.env["BREVO_DOMAIN"];
     if (!domain) { res.status(503).json({ error: "Custom domain not configured on this server" }); return; }
     const local = (localPart?.trim() || (address?.split("@")[0]) || generateLocalPart())
       .toLowerCase().replace(/[^a-z0-9._-]/g, "");

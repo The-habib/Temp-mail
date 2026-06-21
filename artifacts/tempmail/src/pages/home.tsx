@@ -269,31 +269,41 @@ export default function HomePage() {
                 <span className="text-[10px] font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: providerMeta.bg, color: providerMeta.text }}>
                   {providerMeta.name}
                 </span>
-                <span className="text-white/30 text-[10px]">via secure proxy</span>
+                <span className="text-white/30 text-[10px]">{providerKey === "custom" ? "via Brevo inbound" : "via secure proxy"}</span>
               </div>
             </div>
           </div>
 
-          {/* Countdown */}
-          <div className="bg-white rounded-3xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
-            <div className="flex items-center gap-2 mb-4">
-              <Clock className="h-3.5 w-3.5 text-[#9A9A8A]" />
-              <span className="text-xs text-[#9A9A8A] font-medium">Expires in</span>
-            </div>
-            <div className="flex items-center justify-center gap-2">
-              {[{ val: timeLeft.hrs, label: "HRS" }, { val: timeLeft.mins, label: "MIN" }, { val: timeLeft.secs, label: "SEC" }].map((item, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  {i > 0 && <span className="text-2xl font-light text-[#D0D0C0] mb-3">:</span>}
-                  <div className="text-center">
-                    <div className="w-16 h-14 rounded-2xl flex items-center justify-center mb-1.5" style={{ background: "linear-gradient(135deg, #F8F8F0, #EFEFDF)" }}>
-                      <span className="text-2xl font-bold text-[#1A1A1A] tabular-nums">{pad(item.val)}</span>
+          {/* Countdown — hidden for custom domain (no expiry) */}
+          {providerKey !== "custom" ? (
+            <div className="bg-white rounded-3xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+              <div className="flex items-center gap-2 mb-4">
+                <Clock className="h-3.5 w-3.5 text-[#9A9A8A]" />
+                <span className="text-xs text-[#9A9A8A] font-medium">Expires in</span>
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                {[{ val: timeLeft.hrs, label: "HRS" }, { val: timeLeft.mins, label: "MIN" }, { val: timeLeft.secs, label: "SEC" }].map((item, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    {i > 0 && <span className="text-2xl font-light text-[#D0D0C0] mb-3">:</span>}
+                    <div className="text-center">
+                      <div className="w-16 h-14 rounded-2xl flex items-center justify-center mb-1.5" style={{ background: "linear-gradient(135deg, #F8F8F0, #EFEFDF)" }}>
+                        <span className="text-2xl font-bold text-[#1A1A1A] tabular-nums">{pad(item.val)}</span>
+                      </div>
+                      <div className="text-[9px] text-[#ABABAB] uppercase tracking-widest font-semibold">{item.label}</div>
                     </div>
-                    <div className="text-[9px] text-[#ABABAB] uppercase tracking-widest font-semibold">{item.label}</div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="bg-white rounded-3xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+              <div className="flex items-center gap-2 mb-2">
+                <ShieldCheck className="h-3.5 w-3.5 text-[#7C3AED]" />
+                <span className="text-xs text-[#7C3AED] font-semibold">Custom Domain Inbox</span>
+              </div>
+              <p className="text-xs text-[#9A9A8A] leading-relaxed">This address never expires. All emails sent to it via Brevo arrive here in real time.</p>
+            </div>
+          )}
 
           {/* Stats */}
           <div className="grid grid-cols-2 gap-3">
@@ -318,7 +328,7 @@ export default function HomePage() {
           {/* Privacy */}
           <div className="flex items-center gap-2.5 px-4 py-3 bg-[#EDFAD3] rounded-2xl">
             <ShieldCheck className="h-4 w-4 text-[#4A7A10] flex-shrink-0" />
-            <span className="text-xs text-[#4A7A10] font-medium">No tracking · Auto-deletes in 24h</span>
+            <span className="text-xs text-[#4A7A10] font-medium">{providerKey === "custom" ? "No tracking · Permanent address" : "No tracking · Auto-deletes in 24h"}</span>
           </div>
         </div>
       </div>
