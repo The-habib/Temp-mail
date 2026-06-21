@@ -1,0 +1,1 @@
+- [Dev workflow setup](dev-workflow.md) — Vite on 5000 (webview) + Express on 8080 (console); artifact router only needed for production-like previews and conflicts with port 8080.
