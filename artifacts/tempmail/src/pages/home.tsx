@@ -36,6 +36,7 @@ const PROVIDER_META: Record<string, { name: string; bg: string; text: string }> 
   mailtm:        { name: "Mail.tm",       bg: "#EDFAD3", text: "#4A7A10" },
   guerrillamail: { name: "Guerrilla",     bg: "#DBEAFE", text: "#1D4ED8" },
   templol:       { name: "TempMail.lol",  bg: "#FEF3C7", text: "#B45309" },
+  custom:        { name: "My Domain",     bg: "#F3E8FF", text: "#7C3AED" },
 };
 
 export default function HomePage() {

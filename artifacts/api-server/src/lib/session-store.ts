@@ -1,4 +1,4 @@
-export type ProviderKey = "mailtm" | "guerrillamail" | "templol";
+export type ProviderKey = "mailtm" | "guerrillamail" | "templol" | "custom";
 
 export interface SessionEntry {
   provider: ProviderKey;

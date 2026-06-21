@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
-import { useGetProviderDomains, useCreateMailbox } from "@workspace/api-client-react";
+import { useGetProviderDomains, useCreateMailbox, useGetProviders } from "@workspace/api-client-react";
 import { useMailboxStore } from "@/hooks/use-mailbox-store";
 import { useToast } from "@/hooks/use-toast";
 import { useSavedAddresses } from "@/hooks/use-saved-addresses";
-import { ArrowLeft, Check, Shield, Globe, ChevronRight, Shuffle, Info, Bookmark, X } from "lucide-react";
+import { ArrowLeft, Check, Shield, Globe, ChevronRight, Shuffle, Info, Bookmark, X, Star } from "lucide-react";
 
-type ProviderKey = "mailtm" | "guerrillamail";
+type ProviderKey = "mailtm" | "guerrillamail" | "custom";
 
 interface ProviderInfo {
   id: ProviderKey;
@@ -19,7 +19,17 @@ interface ProviderInfo {
   color: string;
 }
 
-const PROVIDERS: ProviderInfo[] = [
+const STATIC_PROVIDERS: ProviderInfo[] = [
+  {
+    id: "custom",
+    name: "My Domain",
+    description: "Your own domain · real inbox",
+    supportsCustom: true,
+    supportsDomain: true,
+    icon: <Star className="h-4 w-4" />,
+    badge: "Own Domain",
+    color: "#7C3AED",
+  },
   {
     id: "mailtm",
     name: "Mail.tm",
@@ -53,40 +63,76 @@ export default function CreatePage() {
   const { saved, save: saveAddress, remove: removeSaved } = useSavedAddresses();
   const domainScrollRef = useRef<HTMLDivElement>(null);
 
+  const { data: serverProviders } = useGetProviders();
+
+  const hasCustomDomain = serverProviders?.some((p) => p.id === "custom") ?? false;
+  const PROVIDERS = hasCustomDomain ? STATIC_PROVIDERS : STATIC_PROVIDERS.filter((p) => p.id !== "custom");
+
   const [mode, setMode] = useState<"random" | "custom">("random");
   const [customUsername, setCustomUsername] = useState("");
   const [selectedProvider, setSelectedProvider] = useState<ProviderKey>("mailtm");
   const [selectedDomain, setSelectedDomain] = useState<string>("");
 
+  useEffect(() => {
+    if (hasCustomDomain && selectedProvider === "mailtm") {
+      setSelectedProvider("custom");
+    }
+  }, [hasCustomDomain]);
+
   const createMailbox = useCreateMailbox();
-  const currentProvider = PROVIDERS.find((p) => p.id === selectedProvider)!;
+  const currentProvider = PROVIDERS.find((p) => p.id === selectedProvider) ?? PROVIDERS[0]!;
 
   const { data: domains = [], isLoading: domainsLoading } = useGetProviderDomains(selectedProvider, {
     query: { enabled: currentProvider?.supportsDomain === true },
   });
 
-  // Reset domain selection when provider or domains change
   useEffect(() => {
     if (domains.length > 0) {
-      setSelectedDomain(domains[0].domain);
+      setSelectedDomain(domains[0]!.domain);
       domainScrollRef.current?.scrollTo({ left: 0, behavior: "smooth" });
     } else {
       setSelectedDomain("");
     }
   }, [selectedProvider, domains]);
 
-  // Reset custom mode if provider doesn't support it
   useEffect(() => {
     if (!currentProvider.supportsCustom) setMode("random");
   }, [currentProvider]);
 
   const handleCreate = () => {
+    if (selectedProvider === "custom") {
+      const localPart = mode === "custom" && customUsername.trim()
+        ? customUsername.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "")
+        : undefined;
+
+      createMailbox.mutate(
+        { data: { address: `${localPart ?? "random"}@placeholder`, password: "unused", provider: "custom" as never, localPart } as never },
+        {
+          onSuccess: (data) => {
+            setMailbox(data);
+            if (mode === "custom" && customUsername.trim()) {
+              saveAddress({
+                username: customUsername.trim().toLowerCase().replace(/[^a-z0-9._-]/g, ""),
+                domain: data.address.split("@")[1] || "",
+                address: data.address,
+                provider: "custom",
+              });
+            }
+            toast({ title: "Custom inbox created!", description: data.address });
+            navigate("/");
+          },
+          onError: () =>
+            toast({ title: "Error", description: "Failed to create custom domain mailbox.", variant: "destructive" }),
+        }
+      );
+      return;
+    }
+
     const username =
       mode === "custom" && customUsername.trim() && currentProvider.supportsCustom
         ? customUsername.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "")
         : generateRandomString(10);
 
-    // For Guerrilla Mail, the API assigns the domain automatically
     const address = currentProvider.supportsDomain
       ? `${username}@${selectedDomain || domains[0]?.domain || "mail.tm"}`
       : `${username}@guerrillamail.com`;
@@ -94,7 +140,7 @@ export default function CreatePage() {
     const password = generateRandomString(14);
 
     createMailbox.mutate(
-      { data: { address, password, provider: selectedProvider } },
+      { data: { address, password, provider: selectedProvider as never } },
       {
         onSuccess: (data) => {
           setMailbox(data);
@@ -126,28 +172,26 @@ export default function CreatePage() {
     if (domains.length < 2) return;
     const others = domains.filter((d) => d.domain !== selectedDomain);
     const pick = others[Math.floor(Math.random() * others.length)];
-    setSelectedDomain(pick.domain);
-    const idx = domains.findIndex((d) => d.domain === pick.domain);
+    setSelectedDomain(pick!.domain);
+    const idx = domains.findIndex((d) => d.domain === pick!.domain);
     const chip = domainScrollRef.current?.children[idx] as HTMLElement | undefined;
     chip?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
   };
 
   const canCreate =
     !createMailbox.isPending &&
-    (!currentProvider.supportsDomain || selectedDomain !== "") &&
+    (selectedProvider === "custom" ||
+      (!currentProvider.supportsDomain || selectedDomain !== "")) &&
     (mode === "random" || !currentProvider.supportsCustom || customUsername.trim().length > 0);
 
-  const previewAddress = currentProvider.supportsDomain
-    ? `${
-        mode === "custom" && customUsername.trim()
-          ? customUsername.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "")
-          : "username"
-      }@${selectedDomain || "..."}`
-    : `${
-        mode === "custom" && customUsername.trim()
-          ? customUsername.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "")
-          : "username"
-      }@auto-assigned.domain`;
+  const previewAddress =
+    selectedProvider === "custom"
+      ? mode === "custom" && customUsername.trim()
+        ? `${customUsername.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "")}@${selectedDomain || "yourdomain.com"}`
+        : `random.name123@${selectedDomain || "yourdomain.com"}`
+      : currentProvider.supportsDomain
+      ? `${mode === "custom" && customUsername.trim() ? customUsername.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "") : "username"}@${selectedDomain || "..."}`
+      : `${mode === "custom" && customUsername.trim() ? customUsername.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "") : "username"}@auto-assigned.domain`;
 
   return (
     <div className="flex flex-col h-full bg-[#F4F4E4] overflow-y-auto pb-10">
@@ -225,8 +269,21 @@ export default function CreatePage() {
         </div>
       </div>
 
+      {/* Custom domain info banner */}
+      {selectedProvider === "custom" && (
+        <div className="mx-5 mb-5 bg-[#F3E8FF] rounded-2xl px-4 py-3 flex items-start gap-2.5 anim-slide-up" style={{ animationDelay: "90ms" }}>
+          <Info className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm text-[#5B21B6] font-semibold mb-0.5">Emails land in your real inbox</p>
+            <p className="text-xs text-[#7C3AED] leading-relaxed">
+              Emails sent to this address arrive here instantly via Mailgun. Make sure MX records are pointed at Mailgun for your domain.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Domain picker — only for providers that support it */}
-      {currentProvider.supportsDomain && (
+      {currentProvider.supportsDomain && selectedProvider !== "custom" && (
         <div className="px-5 mb-5 anim-slide-up" style={{ animationDelay: "100ms" }}>
           <div className="flex items-center justify-between mb-2.5">
             <p className="text-[11px] font-semibold text-[#9A9A9A] uppercase tracking-widest">Domain</p>
@@ -279,7 +336,7 @@ export default function CreatePage() {
         </div>
       )}
 
-      {/* Auto-domain note for providers without domain selection */}
+      {/* Auto-domain note for Guerrilla Mail */}
       {!currentProvider.supportsDomain && (
         <div className="mx-5 mb-5 bg-[#EDF3FB] rounded-2xl px-4 py-3 flex items-center gap-2.5 anim-slide-up" style={{ animationDelay: "100ms" }}>
           <Info className="h-4 w-4 text-[#4285F4] flex-shrink-0" />
@@ -287,7 +344,7 @@ export default function CreatePage() {
         </div>
       )}
 
-      {/* Username mode — only for providers that support custom */}
+      {/* Username mode */}
       {currentProvider.supportsCustom && (
         <div className="px-5 mb-5 anim-slide-up" style={{ animationDelay: "140ms" }}>
           <p className="text-[11px] font-semibold text-[#9A9A9A] uppercase tracking-widest mb-2.5">Username</p>
@@ -319,15 +376,15 @@ export default function CreatePage() {
               className="flex-1 text-sm text-[#1A1A1A] placeholder-[#C8C8B8] outline-none disabled:opacity-40 bg-transparent"
               data-testid="input-username"
             />
-            {selectedDomain && (
+            {(selectedDomain || selectedProvider === "custom") && (
               <div className="flex items-center text-sm text-[#7A7A7A] flex-shrink-0 border-l border-[#E8E8D8] pl-3 gap-1">
-                <span>@{selectedDomain}</span>
+                <span>@{selectedDomain || "yourdomain.com"}</span>
                 <ChevronRight className="h-3.5 w-3.5 opacity-40" />
               </div>
             )}
           </div>
 
-          {/* ── Saved addresses ───────────────────────────────────── */}
+          {/* Saved addresses */}
           {mode === "custom" && saved.length > 0 && (
             <div className="mt-3">
               <div className="flex items-center gap-1.5 mb-2">

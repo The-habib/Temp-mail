@@ -2,6 +2,9 @@ import { Router } from "express";
 import { randomUUID } from "crypto";
 import { sessionStore } from "../lib/session-store.js";
 import type { ProviderKey } from "../lib/session-store.js";
+import { db } from "@workspace/db";
+import { mailboxesTable, emailsTable } from "@workspace/db/schema";
+import { eq, desc } from "drizzle-orm";
 
 const router = Router();
 
@@ -64,14 +67,28 @@ async function lolFetch(path: string): Promise<Response> {
   });
 }
 
+function generateLocalPart(): string {
+  const adjs = ["swift","quiet","brave","calm","dark","fresh","gold","happy","icy","jolly","kind","lazy","merry","neat","odd","pink","quick","red","silver","tall","vast","warm","zesty","bold","cool","deft","epic","fine","great"];
+  const nouns = ["fox","owl","hawk","wolf","bear","deer","lion","tiger","eagle","raven","storm","river","ocean","flame","spark","cloud","stone","blade","arrow","forge","cedar","maple","birch","pine","grove","creek","ridge","vale"];
+  const adj = adjs[Math.floor(Math.random() * adjs.length)];
+  const noun = nouns[Math.floor(Math.random() * nouns.length)];
+  const num = Math.floor(Math.random() * 900 + 100);
+  return `${adj}.${noun}${num}`;
+}
+
 // ─── /providers ─────────────────────────────────────────────────────────────
 
 router.get("/providers", (_req, res) => {
-  res.json([
+  const customDomain = process.env["MAILGUN_DOMAIN"];
+  const providers = [
     { id: "mailtm",        name: "Mail.tm",        description: "Fast & reliable",   supportsCustom: true  },
     { id: "guerrillamail", name: "Guerrilla Mail",  description: "Classic & trusted", supportsCustom: true  },
     { id: "templol",       name: "TempMail.lol",    description: "Simple & instant",  supportsCustom: false },
-  ]);
+  ];
+  if (customDomain) {
+    providers.unshift({ id: "custom", name: `@${customDomain}`, description: "Your own domain · real inbox", supportsCustom: true });
+  }
+  res.json(providers);
 });
 
 // ─── /domains ───────────────────────────────────────────────────────────────
@@ -87,6 +104,13 @@ router.get("/domains", async (req, res) => {
 
   if (provider === "guerrillamail") { res.json(GUERRILLA_DOMAINS); return; }
   if (provider === "templol")       { res.json([]);                 return; }
+
+  if (provider === "custom") {
+    const domain = process.env["MAILGUN_DOMAIN"];
+    if (!domain) { res.json([]); return; }
+    res.json([{ id: domain, domain, isActive: true }]);
+    return;
+  }
 
   try {
     const response = await mailtmFetch("/domains?page=1");
@@ -105,9 +129,28 @@ router.get("/domains", async (req, res) => {
 // ─── POST /mailbox ───────────────────────────────────────────────────────────
 
 router.post("/mailbox", async (req, res) => {
-  const { address, password, provider = "mailtm" } = req.body as {
-    address: string; password: string; provider?: ProviderKey;
+  const { address, password, provider = "mailtm", localPart } = req.body as {
+    address: string; password: string; provider?: ProviderKey | "custom"; localPart?: string;
   };
+
+  // ── Custom domain (Mailgun inbound) ───────────────────────────────────────
+  if (provider === "custom") {
+    const domain = process.env["MAILGUN_DOMAIN"];
+    if (!domain) { res.status(503).json({ error: "Custom domain not configured on this server" }); return; }
+    const local = (localPart?.trim() || (address?.split("@")[0]) || generateLocalPart())
+      .toLowerCase().replace(/[^a-z0-9._-]/g, "");
+    const finalAddress = `${local}@${domain}`;
+    const id = `cm_${randomUUID()}`;
+    try {
+      await db.insert(mailboxesTable).values({ id, address: finalAddress }).onConflictDoNothing();
+      sessionStore.set(id, { provider: "custom" as ProviderKey, token: id, address: finalAddress });
+      res.status(201).json({ id, address: finalAddress, token: id, createdAt: new Date().toISOString(), provider: "custom" });
+    } catch (err) {
+      req.log.error({ err }, "Failed to create custom mailbox");
+      res.status(500).json({ error: "Internal server error" });
+    }
+    return;
+  }
 
   if (!address || !password) { res.status(400).json({ error: "address and password are required" }); return; }
 
@@ -147,7 +190,6 @@ router.post("/mailbox", async (req, res) => {
         email_addr: string; alias: string; sid_token: string; email_timestamp: number;
       };
 
-      // Try to apply the requested domain (best-effort — Guerrilla Mail may ignore it)
       let finalAddress = gm.email_addr;
       const assignedDomain = finalAddress.split("@")[1] ?? "";
       if (wantDomain && wantDomain !== assignedDomain) {
@@ -205,6 +247,32 @@ router.get("/mailbox/:id/messages", async (req, res) => {
 
   const provider = session?.provider ?? "mailtm";
 
+  // ── Custom domain — read from database ───────────────────────────────────
+  if (provider === "custom") {
+    try {
+      const mailbox = await db.select().from(mailboxesTable).where(eq(mailboxesTable.id, id)).limit(1);
+      if (!mailbox.length) { res.status(404).json({ error: "Mailbox not found" }); return; }
+      const emails = await db
+        .select()
+        .from(emailsTable)
+        .where(eq(emailsTable.mailboxAddress, mailbox[0]!.address))
+        .orderBy(desc(emailsTable.receivedAt))
+        .limit(50);
+      res.json(emails.map((e) => ({
+        id: String(e.id),
+        from: { address: e.fromAddress, name: e.fromName },
+        subject: e.subject,
+        intro: (e.bodyText || "").substring(0, 120),
+        seen: e.isRead,
+        createdAt: e.receivedAt.toISOString(),
+      })));
+    } catch (err) {
+      req.log.error({ err }, "Failed to fetch custom mailbox messages");
+      res.status(500).json({ error: "Internal server error" });
+    }
+    return;
+  }
+
   try {
     // ── mail.tm ──────────────────────────────────────────────────────────────
     if (provider === "mailtm") {
@@ -244,7 +312,6 @@ router.get("/mailbox/:id/messages", async (req, res) => {
         }> | null;
       };
 
-      // Detect expired / invalid session
       if (gm.alias_error && gm.alias_error !== "") {
         res.status(401).json({ error: "Guerrilla Mail session expired — please create a new mailbox" });
         return;
@@ -307,6 +374,37 @@ router.get("/mailbox/:id/messages/:messageId", async (req, res) => {
 
   const provider = session?.provider ?? "mailtm";
 
+  // ── Custom domain — read from database ───────────────────────────────────
+  if (provider === "custom") {
+    try {
+      const mailbox = await db.select().from(mailboxesTable).where(eq(mailboxesTable.id, id)).limit(1);
+      if (!mailbox.length) { res.status(404).json({ error: "Mailbox not found" }); return; }
+      const msgIdNum = parseInt(messageId, 10);
+      if (isNaN(msgIdNum)) { res.status(400).json({ error: "Invalid message ID" }); return; }
+      const emails = await db.select().from(emailsTable).where(eq(emailsTable.id, msgIdNum)).limit(1);
+      const email = emails[0];
+      if (!email || email.mailboxAddress !== mailbox[0]!.address) {
+        res.status(404).json({ error: "Message not found" }); return;
+      }
+      await db.update(emailsTable).set({ isRead: true }).where(eq(emailsTable.id, msgIdNum));
+      res.json({
+        id: String(email.id),
+        from: { address: email.fromAddress, name: email.fromName },
+        to: [{ address: mailbox[0]!.address, name: "" }],
+        subject: email.subject,
+        intro: (email.bodyText || "").substring(0, 120),
+        html: email.bodyHtml || null,
+        text: email.bodyText || null,
+        seen: true,
+        createdAt: email.receivedAt.toISOString(),
+      });
+    } catch (err) {
+      req.log.error({ err }, "Failed to fetch custom mailbox message");
+      res.status(500).json({ error: "Internal server error" });
+    }
+    return;
+  }
+
   try {
     // ── mail.tm ──────────────────────────────────────────────────────────────
     if (provider === "mailtm") {
@@ -318,7 +416,6 @@ router.get("/mailbox/:id/messages/:messageId", async (req, res) => {
         id: string; from: { address: string; name: string }; to: Array<{ address: string; name: string }>;
         subject: string; intro: string; text?: string; html?: string | string[]; seen: boolean; createdAt: string;
       };
-      // html can be string[] (multipart) or plain string
       let htmlBody: string | null = null;
       if (Array.isArray(m.html)) {
         htmlBody = m.html.length > 0 ? m.html.join("") : null;
@@ -408,6 +505,21 @@ router.delete("/mailbox/:id/messages/:messageId", async (req, res) => {
 
   const provider = session?.provider ?? "mailtm";
 
+  // ── Custom domain — delete from database ──────────────────────────────────
+  if (provider === "custom") {
+    try {
+      const msgIdNum = parseInt(messageId, 10);
+      if (!isNaN(msgIdNum)) {
+        await db.delete(emailsTable).where(eq(emailsTable.id, msgIdNum));
+      }
+      res.status(204).end();
+    } catch (err) {
+      req.log.error({ err }, "Failed to delete custom mailbox message");
+      res.status(500).json({ error: "Internal server error" });
+    }
+    return;
+  }
+
   try {
     if (provider === "mailtm") {
       const response = await mailtmFetch(`/messages/${messageId}`, {
@@ -423,14 +535,12 @@ router.delete("/mailbox/:id/messages/:messageId", async (req, res) => {
     }
 
     if (provider === "guerrillamail") {
-      // Use manually constructed URL to preserve bracket notation
       await guerrillaDeleteFetch(messageId, rawToken!);
       res.status(204).end();
       return;
     }
 
     if (provider === "templol") {
-      // TempMail.lol has no delete API
       res.status(204).end();
       return;
     }

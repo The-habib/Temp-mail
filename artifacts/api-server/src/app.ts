@@ -4,6 +4,7 @@ import pinoHttp from "pino-http";
 import path from "path";
 import { fileURLToPath } from "url";
 import router from "./routes";
+import webhookRouter from "./routes/webhook";
 import { logger } from "./lib/logger";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -34,6 +35,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
+app.use("/webhook", webhookRouter);
 
 if (process.env.NODE_ENV === "production") {
   const staticDir = path.resolve(__dirname, "../../tempmail/dist/public");
