@@ -142,10 +142,10 @@ export default function HomePage() {
   const unreadCount = messages.filter((m) => !m.seen).length;
 
   return (
-    <div className="flex flex-col md:flex-row h-full overflow-hidden bg-[#F0F0E4]">
+    <div className="flex flex-col md:flex-row md:h-full md:overflow-hidden bg-[#F0F0E4]">
 
       {/* ── LEFT PANEL ──────────────────────────────────────────── */}
-      <div className="md:w-[300px] lg:w-[340px] md:flex-shrink-0 md:h-full md:overflow-y-auto flex-shrink-0">
+      <div className="md:w-[300px] lg:w-[340px] md:flex-shrink-0 md:h-full md:overflow-y-auto">
         <div className="p-4 space-y-3">
 
           {/* Email address card */}
@@ -276,7 +276,7 @@ export default function HomePage() {
       </div>
 
       {/* ── RIGHT: Inbox ────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col bg-white md:h-full overflow-hidden rounded-t-[32px] md:rounded-none shadow-[0_-4px_24px_rgba(0,0,0,0.06)] md:shadow-none">
+      <div className="flex-1 flex flex-col bg-white md:h-full md:overflow-hidden rounded-t-[32px] md:rounded-none shadow-[0_-4px_24px_rgba(0,0,0,0.06)] md:shadow-none">
 
         {/* Inbox header */}
         <div className="px-5 pt-5 pb-3 flex-shrink-0">
@@ -320,8 +320,8 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Message list — scrollable */}
-        <div className="flex-1 overflow-y-auto px-4 pb-24 md:pb-6">
+        {/* Message list — scrollable on desktop, natural flow on mobile */}
+        <div className="md:flex-1 md:overflow-y-auto px-4 pb-24 md:pb-6">
           {isLoadingMessages ? (
             <div className="space-y-3 pt-2">
               {[0, 1, 2].map((i) => (
