@@ -423,84 +423,106 @@ export default function HomePage() {
       <Sheet open={!!selectedMessageId} onOpenChange={(open) => !open && setSelectedMessageId(null)}>
         <SheetContent
           side="bottom"
-          className="h-[92vh] md:h-[88vh] rounded-t-[28px] p-0 border-0 bg-white focus-visible:outline-none"
+          className="h-[93vh] md:h-[88vh] rounded-t-[32px] p-0 border-0 bg-white focus-visible:outline-none overflow-hidden flex flex-col"
         >
-          <div className="flex justify-center pt-3 flex-shrink-0">
-            <div className="w-12 h-1 bg-[#E4E4D8] rounded-full" />
+          {/* Drag handle */}
+          <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+            <div className="w-10 h-[3px] bg-[#E0E0D5] rounded-full" />
           </div>
 
           {isLoadingMessage ? (
-            <div className="p-5 space-y-4 pt-4">
+            <div className="p-5 space-y-5 pt-4">
+              <div className="flex items-center gap-3">
+                <Skeleton className="w-11 h-11 rounded-2xl flex-shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-36" />
+                  <Skeleton className="h-3 w-48" />
+                </div>
+              </div>
               <Skeleton className="h-6 w-3/4 rounded-xl" />
-              <Skeleton className="h-4 w-1/2 rounded-lg" />
-              <div className="space-y-2.5 pt-4">
+              <div className="space-y-2.5 pt-2">
                 {[1, 0.9, 0.7, 0.85, 0.6].map((w, i) => (
                   <Skeleton key={i} className="h-3 rounded-lg" style={{ width: `${w * 100}%` }} />
                 ))}
               </div>
             </div>
           ) : selectedMessage ? (
-            <div className="flex flex-col h-[calc(92vh-28px)] md:h-[calc(88vh-28px)]">
-              {/* Header */}
-              <div className="px-4 pt-2 pb-4 border-b border-[#F0F0E8] flex-shrink-0">
-                <div className="flex items-center gap-2 mb-3">
+            <div className="flex flex-col flex-1 min-h-0">
+
+              {/* ── Sheet header ─────────────────────────────────── */}
+              <div className="flex-shrink-0" style={{ background: "linear-gradient(180deg, #FAFAF6 0%, #FFFFFF 100%)" }}>
+
+                {/* Top action bar: back + delete */}
+                <div className="flex items-center justify-between px-3 pt-1 pb-2">
                   <button
                     onClick={() => setSelectedMessageId(null)}
-                    className="w-9 h-9 flex items-center justify-center text-[#7A7A7A] hover:text-[#1A1A1A] rounded-xl hover:bg-[#F4F4E8] transition-colors flex-shrink-0"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[#5A5A5A] hover:bg-[#F0F0E8] hover:text-[#1A1A1A] transition-colors"
                   >
-                    <ArrowLeft className="h-5 w-5" />
+                    <ArrowLeft className="h-4 w-4" />
+                    <span className="text-sm font-medium">Back</span>
                   </button>
-                  <h2 className="flex-1 text-base font-bold text-[#1A1A1A] leading-snug line-clamp-2">
-                    {selectedMessage.subject || "No Subject"}
-                  </h2>
+
                   <button
                     onClick={() => handleDelete(selectedMessage.id)}
                     data-testid={`button-delete-${selectedMessage.id}`}
-                    className="w-9 h-9 flex items-center justify-center text-[#EA4335] hover:bg-red-50 rounded-xl flex-shrink-0 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[#EA4335] hover:bg-red-50 transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />
+                    <span className="text-sm font-medium">Delete</span>
                   </button>
                 </div>
-                <div className="flex items-center gap-3 px-1">
-                  {(() => {
-                    const name = selectedMessage.from.name || selectedMessage.from.address;
-                    const [gFrom, gTo] = avatarColor(name);
-                    return (
-                      <div
-                        className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-                        style={{ background: `linear-gradient(135deg, ${gFrom}, ${gTo})` }}
-                      >
-                        {name.charAt(0).toUpperCase()}
+
+                {/* Sender card */}
+                <div className="px-4 pb-4">
+                  {/* Subject */}
+                  <h2 className="text-lg font-bold text-[#1A1A1A] leading-snug mb-3 pr-2">
+                    {selectedMessage.subject || "No Subject"}
+                  </h2>
+
+                  {/* Sender row */}
+                  <div className="flex items-center gap-3">
+                    {(() => {
+                      const name = selectedMessage.from.name || selectedMessage.from.address;
+                      const [gFrom, gTo] = avatarColor(name);
+                      return (
+                        <div
+                          className="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm"
+                          style={{ background: `linear-gradient(135deg, ${gFrom}, ${gTo})` }}
+                        >
+                          {name.charAt(0).toUpperCase()}
+                        </div>
+                      );
+                    })()}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-[#1A1A1A] truncate">
+                        {selectedMessage.from.name || selectedMessage.from.address}
                       </div>
-                    );
-                  })()}
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-[#1A1A1A] truncate">
-                      {selectedMessage.from.name || selectedMessage.from.address}
+                      {selectedMessage.from.name && (
+                        <div className="text-xs text-[#9A9A8A] truncate">{selectedMessage.from.address}</div>
+                      )}
                     </div>
-                    {selectedMessage.from.name && (
-                      <div className="text-xs text-[#9A9A8A] truncate">{selectedMessage.from.address}</div>
-                    )}
-                  </div>
-                  <div className="text-[11px] text-[#BCBCAC] flex-shrink-0 text-right">
-                    <div>{new Date(selectedMessage.createdAt).toLocaleDateString()}</div>
-                    <div>{new Date(selectedMessage.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
+                    <div className="text-[11px] text-[#BCBCAC] flex-shrink-0 text-right leading-relaxed">
+                      <div>{new Date(selectedMessage.createdAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}</div>
+                      <div>{new Date(selectedMessage.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
+                    </div>
                   </div>
                 </div>
+
+                <div className="h-px bg-[#F0F0E8] mx-4" />
               </div>
 
-              {/* Body */}
-              <div className="flex-1 overflow-auto">
+              {/* ── Email body ───────────────────────────────────── */}
+              <div className="flex-1 overflow-auto min-h-0">
                 {selectedMessage.html ? (
                   <iframe
-                    srcDoc={`<!DOCTYPE html><html><head><base target="_blank"><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;padding:16px;color:#1A1A1A;font-size:14px;line-height:1.6;word-break:break-word}img{max-width:100%;height:auto}a{color:#4A7A10}a:hover{opacity:0.8}button,a[href]{cursor:pointer}</style></head><body>${selectedMessage.html}</body></html>`}
+                    srcDoc={`<!DOCTYPE html><html><head><base target="_blank"><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;padding:16px 16px 32px;color:#1A1A1A;font-size:14px;line-height:1.7;word-break:break-word}img{max-width:100%;height:auto}a{color:#4A7A10}a:hover{opacity:0.8}button,a[href]{cursor:pointer}*{box-sizing:border-box}</style></head><body>${selectedMessage.html}</body></html>`}
                     sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
                     title="Email content"
                     className="w-full border-0 block"
                     style={{ height: "100%", minHeight: "400px" }}
                   />
                 ) : (
-                  <div className="p-5">
+                  <div className="p-5 pb-8">
                     <pre className="whitespace-pre-wrap font-sans text-sm text-[#3A3A3A] leading-relaxed">
                       {selectedMessage.text || "No content"}
                     </pre>
