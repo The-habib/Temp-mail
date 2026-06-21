@@ -11,11 +11,11 @@ interface DnsRecord {
   type: string;
   host: string;
   value: string;
+  priority?: string;
 }
 
 interface SetupResult {
   domain: string;
-  domainState: string;
   dnsRecords: {
     mx: DnsRecord[];
     spf: DnsRecord | null;
@@ -76,11 +76,11 @@ export default function SetupPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ apiKey: apiKey.trim(), domain: domain.trim() }),
       });
-      const data = await res.json() as { ok?: boolean; error?: string; domain?: string; domainState?: string; dnsRecords?: SetupResult["dnsRecords"] };
+      const data = await res.json() as { ok?: boolean; error?: string; domain?: string; dnsRecords?: SetupResult["dnsRecords"] };
       if (!res.ok || !data.ok) {
         setError(data.error || "Something went wrong. Please try again.");
       } else {
-        setResult({ domain: data.domain!, domainState: data.domainState!, dnsRecords: data.dnsRecords! });
+        setResult({ domain: data.domain!, dnsRecords: data.dnsRecords! });
         setStep(4);
       }
     } catch {
@@ -139,25 +139,25 @@ export default function SetupPage() {
             <div className="w-10 h-10 bg-[#EDFAD3] rounded-2xl flex items-center justify-center mb-3">
               <Globe className="h-5 w-5 text-[#4A7A10]" />
             </div>
-            <h2 className="text-base font-bold text-[#1A1A1A] mb-1">Create a free Mailgun account</h2>
+            <h2 className="text-base font-bold text-[#1A1A1A] mb-1">Create a free Brevo account</h2>
             <p className="text-sm text-[#6A6A6A] mb-4 leading-relaxed">
-              Mailgun is the service that receives emails on your domain and sends them to your inbox here. 
-              The free plan gives you <strong>1,000 emails/month</strong> — more than enough.
+              Brevo is the free service that receives emails on your domain and forwards them to your inbox here.
+              No credit card needed — the free plan gives you <strong>300 emails/day</strong>.
             </p>
             <a
-              href="https://signup.mailgun.com/new/signup"
+              href="https://app.brevo.com/account/register"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-between w-full bg-[#1A1A1A] text-white rounded-full py-3.5 px-5 font-semibold text-sm hover:bg-[#2A2A2A] transition-colors"
             >
-              <span>Open Mailgun Sign Up</span>
+              <span>Open Brevo Sign Up</span>
               <ExternalLink className="h-4 w-4" />
             </a>
           </div>
 
           <div className="bg-[#FFFBEB] rounded-2xl px-4 py-3 border border-[#FDE68A]">
             <p className="text-xs text-[#92400E] leading-relaxed">
-              <strong>Already have a Mailgun account?</strong> Skip this — just press Continue.
+              <strong>Already have a Brevo account?</strong> Skip this — just press Continue.
             </p>
           </div>
 
@@ -173,27 +173,18 @@ export default function SetupPage() {
         </div>
       )}
 
-      {/* Step 2: Add domain */}
+      {/* Step 2: Enter domain */}
       {step === 2 && (
         <div className="px-5 space-y-4">
           <div className="bg-white rounded-2xl p-5 shadow-[0_1px_8px_rgba(0,0,0,0.05)]">
             <div className="w-10 h-10 bg-[#DBEAFE] rounded-2xl flex items-center justify-center mb-3">
               <Globe className="h-5 w-5 text-[#1D4ED8]" />
             </div>
-            <h2 className="text-base font-bold text-[#1A1A1A] mb-1">Add your domain in Mailgun</h2>
+            <h2 className="text-base font-bold text-[#1A1A1A] mb-1">Enter your domain</h2>
             <p className="text-sm text-[#6A6A6A] mb-4 leading-relaxed">
-              In Mailgun, go to <strong>Sending → Domains → Add New Domain</strong>.
-              Use a subdomain like <code className="bg-[#F0F0E8] px-1 rounded text-xs">mail.yourdomain.com</code> for best results.
+              Enter the domain (or subdomain) you want to receive emails on.
+              A subdomain like <code className="bg-[#F0F0E8] px-1 rounded text-xs">mail.yourdomain.com</code> works best.
             </p>
-            <a
-              href="https://app.mailgun.com/mg/sending/domains"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 w-full bg-[#EDF3FB] text-[#1D4ED8] rounded-full py-3 px-5 font-semibold text-sm hover:bg-[#DBEAFE] transition-colors justify-center mb-2"
-            >
-              Open Mailgun Domains
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
           </div>
 
           <div className="bg-white rounded-2xl p-4 shadow-[0_1px_8px_rgba(0,0,0,0.05)]">
@@ -207,7 +198,7 @@ export default function SetupPage() {
               onChange={(e) => setDomain(e.target.value)}
               className="w-full bg-[#F4F4E4] rounded-xl px-4 py-3 text-sm text-[#1A1A1A] placeholder-[#BCBCBC] outline-none border-2 border-transparent focus:border-[#7AB840] transition-colors font-mono"
             />
-            <p className="text-xs text-[#9A9A9A] mt-1.5">Exactly as you typed it in Mailgun (e.g. mail.yourdomain.com)</p>
+            <p className="text-xs text-[#9A9A9A] mt-1.5">e.g. mail.yourdomain.com</p>
           </div>
 
           <div className="flex gap-3">
@@ -235,28 +226,28 @@ export default function SetupPage() {
             <div className="w-10 h-10 bg-[#F3E8FF] rounded-2xl flex items-center justify-center mb-3">
               <Key className="h-5 w-5 text-[#7C3AED]" />
             </div>
-            <h2 className="text-base font-bold text-[#1A1A1A] mb-1">Paste your Mailgun API key</h2>
+            <h2 className="text-base font-bold text-[#1A1A1A] mb-1">Paste your Brevo API key</h2>
             <p className="text-sm text-[#6A6A6A] mb-3 leading-relaxed">
-              In Mailgun go to <strong>Settings → API Keys</strong> and copy your <strong>Private API key</strong>.
+              In Brevo go to <strong>Settings → API Keys</strong> and create or copy your API key.
             </p>
             <a
-              href="https://app.mailgun.com/settings/api_security"
+              href="https://app.brevo.com/settings/keys/api"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 w-full bg-[#F3E8FF] text-[#7C3AED] rounded-full py-3 px-5 font-semibold text-sm hover:bg-[#EDE9FE] transition-colors justify-center"
             >
-              Open Mailgun API Keys
+              Open Brevo API Keys
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
           </div>
 
           <div className="bg-white rounded-2xl p-4 shadow-[0_1px_8px_rgba(0,0,0,0.05)]">
             <label className="text-[11px] font-semibold text-[#9A9A9A] uppercase tracking-widest block mb-2">
-              Private API Key
+              API Key
             </label>
             <input
               type="password"
-              placeholder="key-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+              placeholder="xkeysib-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               className="w-full bg-[#F4F4E4] rounded-xl px-4 py-3 text-sm text-[#1A1A1A] placeholder-[#BCBCBC] outline-none border-2 border-transparent focus:border-[#7C3AED] transition-colors font-mono"
@@ -308,37 +299,34 @@ export default function SetupPage() {
           <div className="bg-[#EDFAD3] rounded-2xl p-4 flex items-start gap-3 border border-[#B8E88A]">
             <CheckCircle2 className="h-5 w-5 text-[#4A7A10] flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-bold text-[#2A5A00] mb-0.5">Connected to Mailgun!</p>
-              <p className="text-xs text-[#4A7A10]">Now add these DNS records to your domain registrar (GoDaddy, Namecheap, Cloudflare, etc.)</p>
+              <p className="text-sm font-bold text-[#2A5A00] mb-0.5">Connected to Brevo!</p>
+              <p className="text-xs text-[#4A7A10]">Now add these DNS records at your domain registrar (GoDaddy, Namecheap, Cloudflare, etc.)</p>
             </div>
           </div>
 
           <div className="bg-white rounded-2xl p-4 shadow-[0_1px_8px_rgba(0,0,0,0.05)]">
             <div className="flex items-center gap-2 mb-3">
               <Wifi className="h-4 w-4 text-[#7C3AED]" />
-              <p className="text-sm font-bold text-[#1A1A1A]">MX Records — Email Receiving</p>
+              <p className="text-sm font-bold text-[#1A1A1A]">MX Record — Email Receiving</p>
             </div>
-            <p className="text-xs text-[#6A6A6A] mb-3">Add these in your domain registrar under DNS settings. Copy each value exactly.</p>
+            <p className="text-xs text-[#6A6A6A] mb-3">Add this in your domain registrar's DNS settings.</p>
             <div className="space-y-2">
-              {result.dnsRecords.mx.length > 0 ? (
-                result.dnsRecords.mx.map((r, i) => (
-                  <div key={i} className="space-y-1.5">
-                    <div className="flex gap-2 text-xs">
-                      <span className="bg-[#E8E8F8] text-[#4A4A9A] px-2 py-0.5 rounded font-bold">{r.type}</span>
-                      <span className="text-[#6A6A6A]">Host: <code className="font-mono">{r.host || "@"}</code></span>
-                    </div>
-                    <CopyField value={r.value} label="Value" />
+              {result.dnsRecords.mx.map((r, i) => (
+                <div key={i} className="space-y-1.5">
+                  <div className="flex gap-2 text-xs flex-wrap">
+                    <span className="bg-[#E8E8F8] text-[#4A4A9A] px-2 py-0.5 rounded font-bold">{r.type}</span>
+                    <span className="text-[#6A6A6A]">Host: <code className="font-mono">{r.host || "@"}</code></span>
+                    {r.priority && <span className="text-[#6A6A6A]">Priority: <code className="font-mono">{r.priority}</code></span>}
                   </div>
-                ))
-              ) : (
-                <p className="text-xs text-[#9A9A9A]">MX records not returned — check your Mailgun dashboard for the exact values.</p>
-              )}
+                  <CopyField value={r.value} label="Value" />
+                </div>
+              ))}
             </div>
           </div>
 
           {result.dnsRecords.spf && (
             <div className="bg-white rounded-2xl p-4 shadow-[0_1px_8px_rgba(0,0,0,0.05)]">
-              <p className="text-sm font-bold text-[#1A1A1A] mb-2">SPF Record (optional but recommended)</p>
+              <p className="text-sm font-bold text-[#1A1A1A] mb-2">SPF Record (recommended)</p>
               <div className="flex gap-2 text-xs mb-2">
                 <span className="bg-[#FEF3C7] text-[#92400E] px-2 py-0.5 rounded font-bold">TXT</span>
                 <span className="text-[#6A6A6A]">Host: <code className="font-mono">{result.dnsRecords.spf.host || "@"}</code></span>

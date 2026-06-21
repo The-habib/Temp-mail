@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import { db } from "@workspace/db";
 import { mailboxesTable, emailsTable } from "@workspace/db/schema";
 import { eq, desc } from "drizzle-orm";
+import { readBrevoConfig } from "../lib/brevo-config.js";
 
 const router = Router();
 
@@ -25,15 +26,15 @@ export function generateLocalPart(): string {
 }
 
 router.post("/custom-mailbox", async (req, res) => {
-  const domain = process.env["MAILGUN_DOMAIN"];
-  if (!domain) {
+  const config = readBrevoConfig();
+  if (!config?.domain) {
     res.status(503).json({ error: "Custom domain not configured" });
     return;
   }
 
   const { localPart } = req.body as { localPart?: string };
   const local = (localPart?.trim() || generateLocalPart()).toLowerCase().replace(/[^a-z0-9._-]/g, "");
-  const address = `${local}@${domain}`;
+  const address = `${local}@${config.domain}`;
   const id = `cm_${randomUUID()}`;
 
   try {
