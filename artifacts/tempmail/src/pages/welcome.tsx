@@ -1,6 +1,7 @@
 import { useGetDomains, useCreateMailbox } from "@workspace/api-client-react";
 import { useMailboxStore } from "@/hooks/use-mailbox-store";
 import { useToast } from "@/hooks/use-toast";
+import { ShieldCheck, Clock, Zap, Mail, EyeOff } from "lucide-react";
 
 function generateRandomString(length: number) {
   return Math.random().toString(36).substring(2, 2 + length);
@@ -35,57 +36,65 @@ export default function WelcomePage() {
 
   const isPending = createMailbox.isPending || isLoadingDomains;
 
-  return (
-    /* Mobile: full-height column. Desktop: centered card */
-    <div className="flex flex-col h-full items-center justify-center bg-[#F4F4E4] md:bg-[#E8E8D0] px-0">
-      <div className="flex flex-col w-full h-full md:h-auto md:max-w-sm md:bg-[#F4F4E4] md:rounded-3xl md:shadow-2xl md:overflow-hidden px-6 pt-10 pb-10 md:px-8 md:pt-12 md:pb-12">
+  const features = [
+    { icon: Zap,        label: "Instant",    desc: "Ready in seconds"     },
+    { icon: EyeOff,     label: "Anonymous",  desc: "No tracking ever"     },
+    { icon: ShieldCheck,label: "Secure",     desc: "Spam protected"       },
+    { icon: Clock,      label: "24h Life",   desc: "Auto-deletes safely"  },
+  ];
 
-        {/* Illustration */}
-        <div className="flex-1 md:flex-none flex items-center justify-center md:mb-6 anim-slide-up">
-          <svg viewBox="0 0 320 300" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-64 md:w-56 h-auto drop-shadow-sm">
-            <circle cx="160" cy="168" r="118" fill="#1A1A1A" />
-            <rect x="88" y="62" width="144" height="108" rx="8" fill="white" />
-            <rect x="104" y="85"  width="82"  height="5" rx="2.5" fill="#EBEBEB" />
-            <rect x="104" y="98"  width="112" height="5" rx="2.5" fill="#EBEBEB" />
-            <rect x="104" y="111" width="66"  height="5" rx="2.5" fill="#EBEBEB" />
-            <rect x="52" y="132" width="216" height="148" rx="14" fill="#1E1E1E" />
-            <polygon points="52,132 160,208 268,132" fill="#7AB840" />
-            <polygon points="52,280 112,214 160,242 208,214 268,280" fill="#252525" />
-            <g transform="translate(248,40) rotate(-20)">
-              <polygon points="0,0 34,12 0,24" fill="#7AB840" />
-              <line x1="0" y1="12" x2="22" y2="12" stroke="#5A8A28" strokeWidth="1.5" />
-            </g>
-            <g transform="translate(20,98) rotate(25)">
-              <polygon points="0,0 22,8 0,16" fill="#7AB840" opacity="0.7" />
-            </g>
-            <circle cx="28"  cy="152" r="8"  fill="#7AB840" opacity="0.9" />
-            <circle cx="282" cy="212" r="5"  fill="#7AB840" opacity="0.6" />
-            <circle cx="55"  cy="248" r="5"  fill="#F5C040" opacity="0.9" />
-            <circle cx="284" cy="128" r="10" fill="#7AB840" opacity="0.25" />
-            <circle cx="45"  cy="185" r="3"  fill="#7AB840" opacity="0.5" />
-            <circle cx="272" cy="168" r="4"  fill="#B8D870" opacity="0.6" />
-          </svg>
+  return (
+    <div className="flex flex-col h-full bg-[#F4F4E4] overflow-y-auto">
+
+      {/* ── Hero ───────────────────────────────────────────── */}
+      <div className="flex flex-col items-center justify-center flex-1 px-6 pt-10 pb-6 text-center">
+
+        {/* Logo */}
+        <div className="mb-5 anim-slide-up">
+          <img
+            src="/logo.png"
+            alt="TempMail logo — free temporary disposable email"
+            width={130}
+            height={130}
+            className="drop-shadow-xl"
+          />
         </div>
 
-        {/* Heading */}
-        <div className="mb-8 anim-slide-up" style={{ animationDelay: "80ms" }}>
-          <h1 className="text-[2.6rem] md:text-4xl font-bold leading-tight mb-3 text-[#1A1A1A]">
+        {/* Headline — keyword-rich for SEO */}
+        <div className="mb-6 anim-slide-up" style={{ animationDelay: "60ms" }}>
+          <h1 className="text-[2.4rem] md:text-5xl font-extrabold leading-tight tracking-tight text-[#1A1A1A] mb-3">
             Temp <span className="text-[#7AB840]">Mail</span>
           </h1>
-          <p className="text-[#7A7A7A] text-base leading-relaxed">
-            Your temporary email privacy, made simple.
+          <p className="text-[#5A5A5A] text-base md:text-lg leading-relaxed max-w-xs mx-auto">
+            Free disposable temporary email address.<br />
+            <strong className="text-[#1A1A1A] font-semibold">No sign up. No spam. Auto-deletes in 24h.</strong>
           </p>
         </div>
 
-        {/* CTA */}
-        <div className="space-y-3 anim-slide-up" style={{ animationDelay: "160ms" }}>
+        {/* Feature pills */}
+        <div className="grid grid-cols-2 gap-2.5 w-full max-w-xs mb-7 anim-slide-up" style={{ animationDelay: "120ms" }}>
+          {features.map(({ icon: Icon, label, desc }) => (
+            <div key={label} className="flex items-center gap-2.5 bg-white rounded-2xl px-3 py-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+              <div className="w-8 h-8 bg-[#EDFAD3] rounded-xl flex items-center justify-center flex-shrink-0">
+                <Icon className="h-4 w-4 text-[#4A7A10]" strokeWidth={2} />
+              </div>
+              <div className="text-left min-w-0">
+                <div className="text-xs font-bold text-[#1A1A1A] leading-none mb-0.5">{label}</div>
+                <div className="text-[10px] text-[#8A8A8A] leading-none">{desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* CTA button */}
+        <div className="w-full max-w-xs space-y-3 anim-slide-up" style={{ animationDelay: "180ms" }}>
           <button
             onClick={handleGetStarted}
             disabled={isPending}
-            className="w-full bg-[#1A1A1A] text-white rounded-full py-4 px-6 flex items-center justify-between font-semibold text-base disabled:opacity-60 hover:bg-[#2A2A2A] transition-colors"
+            className="w-full bg-[#1A1A1A] text-white rounded-full py-4 px-6 flex items-center justify-between font-bold text-base disabled:opacity-60 hover:bg-[#2A2A2A] active:scale-[0.98] transition-all"
             data-testid="button-get-started"
           >
-            <span>{isPending ? "Setting up…" : "Get Started"}</span>
+            <span>{isPending ? "Setting up…" : "Get Free Email"}</span>
             <div className="w-9 h-9 bg-[#7AB840] rounded-full flex items-center justify-center flex-shrink-0">
               {isPending ? (
                 <svg className="animate-spin" width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -98,9 +107,63 @@ export default function WelcomePage() {
               )}
             </div>
           </button>
-          <p className="text-center text-[#9A9A9A] text-sm">No sign up needed</p>
+          <p className="text-center text-[#9A9A9A] text-xs">No sign up needed · 100% free</p>
         </div>
+      </div>
 
+      {/* ── SEO content — visible to Google, useful to users ── */}
+      <div className="px-6 pb-10 max-w-lg mx-auto w-full">
+
+        {/* What is section */}
+        <section className="mb-6">
+          <h2 className="text-base font-bold text-[#1A1A1A] mb-2">What is TempMail?</h2>
+          <p className="text-sm text-[#5A5A5A] leading-relaxed">
+            TempMail is a <strong>free temporary email address</strong> service that lets you receive emails
+            without exposing your real inbox. Use it to sign up for websites, verify accounts, or avoid spam —
+            then let it auto-delete after 24 hours.
+          </p>
+        </section>
+
+        {/* Use cases */}
+        <section className="mb-6">
+          <h2 className="text-base font-bold text-[#1A1A1A] mb-3">Why use a disposable email?</h2>
+          <ul className="space-y-2">
+            {[
+              ["Stop spam",         "Register on sites without getting spammed forever."],
+              ["Stay anonymous",    "Never reveal your real email to unknown services."],
+              ["Quick verifications", "Confirm accounts instantly without creating a new inbox."],
+              ["Test emails",       "Perfect for developers testing email flows."],
+            ].map(([title, body]) => (
+              <li key={title} className="flex gap-2.5 text-sm">
+                <span className="text-[#7AB840] font-bold mt-0.5">✓</span>
+                <span className="text-[#5A5A5A]"><strong className="text-[#1A1A1A]">{title}</strong> — {body}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* FAQ accordion-style (static for SEO) */}
+        <section>
+          <h2 className="text-base font-bold text-[#1A1A1A] mb-3">Frequently asked questions</h2>
+          <div className="space-y-3">
+            {[
+              ["Is TempMail free?",              "Yes, completely free. No credit card, no registration, no limits."],
+              ["How long does the email last?",  "24 hours. After that, the address and all messages are permanently deleted."],
+              ["Can I receive real emails?",     "Yes — HTML emails, images, links, and attachments all work."],
+              ["Is it safe?",                    "Your real identity is never exposed. No tracking, no logging."],
+            ].map(([q, a]) => (
+              <div key={String(q)} className="bg-white rounded-2xl px-4 py-3 shadow-[0_1px_6px_rgba(0,0,0,0.05)]">
+                <div className="text-xs font-bold text-[#1A1A1A] mb-1">{q}</div>
+                <div className="text-xs text-[#6A6A6A] leading-relaxed">{a}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <div className="mt-6 flex items-center justify-center gap-2 text-[10px] text-[#ABABAB]">
+          <Mail className="h-3 w-3" />
+          <span>TempMail · Free temporary email · No spam · Private</span>
+        </div>
       </div>
     </div>
   );
