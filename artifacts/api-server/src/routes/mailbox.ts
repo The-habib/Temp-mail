@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { randomUUID } from "crypto";
+import { sessionStore } from "../lib/session-store.js";
+import type { ProviderKey } from "../lib/session-store.js";
 
 const router = Router();
 
@@ -31,16 +33,6 @@ function bodyFields(body: string | undefined | null): { html: string | null; tex
 const MAILTM_BASE    = "https://api.mail.tm";
 const GUERRILLA_BASE = "https://api.guerrillamail.com/ajax.php";
 const TEMPLOL_BASE   = "https://api.tempmail.lol";
-
-type ProviderKey = "mailtm" | "guerrillamail" | "templol";
-
-interface SessionEntry {
-  provider: ProviderKey;
-  token: string;
-  address: string;
-}
-
-const sessionStore = new Map<string, SessionEntry>();
 
 async function mailtmFetch(path: string, options: RequestInit = {}): Promise<Response> {
   return fetch(`${MAILTM_BASE}${path}`, {

@@ -291,7 +291,7 @@ export default function CreatePage() {
                   mode === m ? "bg-white text-[#1A1A1A] shadow-sm" : "text-[#7A7A7A]"
                 }`}
               >
-                {m === "random" ? "🎲 Random" : "✏️ Custom"}
+                {m === "random" ? "Random" : "Custom"}
               </button>
             ))}
           </div>

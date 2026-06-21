@@ -8,9 +8,9 @@ function pad(n: number) { return String(n).padStart(2, "0"); }
 
 function greeting() {
   const h = new Date().getHours();
-  if (h < 12) return { text: "Good morning", emoji: "☀️" };
-  if (h < 18) return { text: "Good afternoon", emoji: "⚡" };
-  return { text: "Good evening", emoji: "🌙" };
+  if (h < 12) return { text: "Good morning" };
+  if (h < 18) return { text: "Good afternoon" };
+  return { text: "Good evening" };
 }
 
 /* ── Premium bar chart ───────────────────────────────────────── */
@@ -170,11 +170,11 @@ function ExpiryProgress({ createdAt }: { createdAt: string }) {
 }
 
 const TIPS = [
-  { tip: "Use a different temp email for every site to track who's selling your data.", icon: "🕵️" },
-  { tip: "Share your temp address on public forums — never your real one.", icon: "🛡️" },
-  { tip: "Your inbox auto-refreshes every 5 seconds. No need to manually reload.", icon: "⚡" },
-  { tip: "Emails auto-delete in 24 hours. Screenshot anything important.", icon: "📸" },
-  { tip: "Copy your address with one tap — paste it anywhere instantly.", icon: "📋" },
+  { tip: "Use a different temp email for every site to track who's selling your data." },
+  { tip: "Share your temp address on public forums — never your real one." },
+  { tip: "Your inbox auto-refreshes every 5 seconds. No need to manually reload." },
+  { tip: "Emails auto-delete in 24 hours. Save anything important before then." },
+  { tip: "Copy your address with one tap — paste it anywhere instantly." },
 ];
 
 /* ── Main page ───────────────────────────────────────────────── */
@@ -200,7 +200,7 @@ export default function ActivityPage() {
   const today       = new Date().toDateString();
   const todayCount  = messages.filter((m) => new Date(m.createdAt).toDateString() === today).length;
   const unreadCount = messages.filter((m) => !m.seen).length;
-  const { text: greet, emoji } = greeting();
+  const { text: greet } = greeting();
   const tip = TIPS[tipIdx];
 
   const copyAddress = () => {
@@ -231,7 +231,7 @@ export default function ActivityPage() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-white/50 text-xs font-medium tracking-wide uppercase mb-0.5">
-                  {emoji} {greet}
+                  {greet}
                 </p>
                 <h1 className="text-white text-xl font-extrabold tracking-tight">
                   Your Activity
@@ -378,7 +378,6 @@ export default function ActivityPage() {
             <span className="text-xs font-semibold text-[#9A9A9A] uppercase tracking-wide">Pro Tip</span>
           </div>
           <div className="flex items-start gap-3">
-            <span className="text-2xl flex-shrink-0 mt-0.5">{tip.icon}</span>
             <p className="text-sm text-[#3A3A3A] leading-relaxed font-medium">{tip.tip}</p>
           </div>
           {/* Dot indicators */}

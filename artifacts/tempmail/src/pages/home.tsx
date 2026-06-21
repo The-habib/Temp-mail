@@ -10,12 +10,13 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useMailboxStore } from "@/hooks/use-mailbox-store";
 import { useToast } from "@/hooks/use-toast";
+import { useNotifications } from "@/hooks/use-notifications";
 import { formatDistanceToNow } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
   Copy, Check, RefreshCw, Edit3, Clock, Trash2, ArrowLeft,
-  Mail, Inbox, Sparkles, ShieldCheck,
+  Mail, Inbox, Sparkles, ShieldCheck, Bell, BellOff,
 } from "lucide-react";
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
@@ -141,6 +142,17 @@ export default function HomePage() {
 
   const unreadCount = messages.filter((m) => !m.seen).length;
 
+  const { isSupported: notifSupported, isSubscribed, isLoading: notifLoading, subscribe, unsubscribe } = useNotifications(mailbox?.id);
+
+  const toggleNotifications = () => {
+    if (isSubscribed) {
+      unsubscribe();
+      toast({ title: "Notifications off", description: "You will no longer receive email alerts." });
+    } else {
+      subscribe();
+    }
+  };
+
   return (
     /* ALWAYS full-height, never overflows — inbox always has room to scroll */
     <div className="h-full overflow-hidden flex flex-col md:flex-row bg-[#F0F0E4]">
@@ -176,6 +188,16 @@ export default function HomePage() {
                 >
                   {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                 </button>
+                {notifSupported && (
+                  <button
+                    onClick={toggleNotifications}
+                    disabled={notifLoading}
+                    title={isSubscribed ? "Disable notifications" : "Enable notifications"}
+                    className={`w-8 h-8 flex items-center justify-center rounded-xl text-white transition-colors ${isSubscribed ? "bg-[#7AB840]" : "bg-white/15 hover:bg-white/25"}`}
+                  >
+                    {isSubscribed ? <Bell className="h-3.5 w-3.5" /> : <BellOff className="h-3.5 w-3.5" />}
+                  </button>
+                )}
                 <button
                   onClick={() => navigate("/create")}
                   className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/15 text-white hover:bg-white/25 transition-colors"
@@ -223,6 +245,16 @@ export default function HomePage() {
                   {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                   {copied ? "Copied!" : "Copy"}
                 </button>
+                {notifSupported && (
+                  <button
+                    onClick={toggleNotifications}
+                    disabled={notifLoading}
+                    title={isSubscribed ? "Disable notifications" : "Enable notifications"}
+                    className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${isSubscribed ? "bg-[#7AB840] text-white" : "bg-white/10 text-white hover:bg-white/20"}`}
+                  >
+                    {isSubscribed ? <Bell className="h-3.5 w-3.5" /> : <BellOff className="h-3.5 w-3.5" />}
+                  </button>
+                )}
                 <button
                   onClick={() => navigate("/create")}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold bg-white/10 text-white hover:bg-white/20 transition-all duration-200"
