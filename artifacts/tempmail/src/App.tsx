@@ -7,6 +7,7 @@ import HomePage from "@/pages/home";
 import CreatePage from "@/pages/create";
 import ActivityPage from "@/pages/activity";
 import SettingsPage from "@/pages/settings";
+import SetupPage from "@/pages/setup";
 import { BottomNav, SideNav } from "@/components/bottom-nav";
 
 const queryClient = new QueryClient();
@@ -15,12 +16,18 @@ function AppWrapper() {
   const { mailbox } = useMailboxStore();
 
   if (!mailbox) {
-    return <WelcomePage />;
+    return (
+      <Switch>
+        <Route path="/setup" component={SetupPage} />
+        <Route component={WelcomePage} />
+      </Switch>
+    );
   }
 
   return (
     <Switch>
       <Route path="/create" component={CreatePage} />
+      <Route path="/setup" component={SetupPage} />
       <Route>
         {/* Desktop: sidebar + content. Mobile: content + floating bottom nav */}
         <div className="flex h-full w-full overflow-hidden">

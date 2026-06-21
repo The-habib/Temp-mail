@@ -1,21 +1,10 @@
 import { Router } from "express";
-import crypto from "crypto";
 import { db } from "@workspace/db";
 import { emailsTable } from "@workspace/db/schema";
+import { readMailgunConfig } from "../lib/mailgun-config.js";
 import { logger } from "../lib/logger.js";
 
 const router = Router();
-
-function verifyMailgunSignature(
-  signingKey: string,
-  timestamp: string,
-  token: string,
-  signature: string,
-): boolean {
-  const value = timestamp + token;
-  const hmac = crypto.createHmac("sha256", signingKey).update(value).digest("hex");
-  return hmac === signature;
-}
 
 function parseFromHeader(raw: string): { address: string; name: string } {
   if (!raw) return { address: "unknown@unknown.com", name: "Unknown" };
@@ -25,19 +14,13 @@ function parseFromHeader(raw: string): { address: string; name: string } {
 }
 
 router.post("/mailgun", async (req, res) => {
-  const signingKey = process.env["MAILGUN_WEBHOOK_SIGNING_KEY"];
-
-  if (signingKey) {
-    const { timestamp, token, signature } = req.body as {
-      timestamp?: string; token?: string; signature?: string;
-    };
-    if (!timestamp || !token || !signature) {
-      res.status(400).json({ error: "Missing Mailgun signature fields" });
-      return;
-    }
-    if (!verifyMailgunSignature(signingKey, timestamp, token, signature)) {
-      req.log.warn("Invalid Mailgun webhook signature");
-      res.status(401).json({ error: "Invalid signature" });
+  // Token-based auth: verify the webhook token in the query string
+  const config = readMailgunConfig();
+  if (config?.webhookToken) {
+    const providedToken = req.query["token"] as string | undefined;
+    if (providedToken !== config.webhookToken) {
+      logger.warn("Invalid webhook token — rejecting inbound email");
+      res.status(401).json({ error: "Unauthorized" });
       return;
     }
   }
@@ -68,10 +51,10 @@ router.post("/mailgun", async (req, res) => {
       isRead: false,
     });
 
-    req.log.info({ recipient, from: fromAddress, subject }, "Stored inbound email");
+    logger.info({ recipient, from: fromAddress, subject }, "Stored inbound email");
     res.status(200).json({ ok: true });
   } catch (err) {
-    req.log.error({ err }, "Failed to store inbound email");
+    logger.error({ err }, "Failed to store inbound email");
     res.status(500).json({ error: "Internal server error" });
   }
 });

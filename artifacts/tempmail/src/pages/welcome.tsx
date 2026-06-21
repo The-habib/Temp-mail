@@ -1,7 +1,8 @@
 import { useGetDomains, useCreateMailbox } from "@workspace/api-client-react";
 import { useMailboxStore } from "@/hooks/use-mailbox-store";
 import { useToast } from "@/hooks/use-toast";
-import { ShieldCheck, Clock, Zap, Mail, EyeOff } from "lucide-react";
+import { ShieldCheck, Clock, Zap, EyeOff, Globe, Mail } from "lucide-react";
+import { useLocation } from "wouter";
 
 function generateRandomString(length: number) {
   return Math.random().toString(36).substring(2, 2 + length);
@@ -12,6 +13,7 @@ export default function WelcomePage() {
   const { data: domains, isLoading: isLoadingDomains } = useGetDomains();
   const createMailbox = useCreateMailbox();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   const handleGetStarted = () => {
     if (!domains || domains.length === 0) return;
@@ -108,6 +110,18 @@ export default function WelcomePage() {
             </div>
           </button>
           <p className="text-center text-[#9A9A9A] text-xs">No sign up needed · 100% free</p>
+
+          {/* Custom domain option */}
+          <button
+            onClick={() => navigate("/setup")}
+            className="w-full flex items-center gap-3 bg-white border-2 border-[#E8E8D8] rounded-full py-3.5 px-5 hover:bg-[#F0F0E8] hover:border-[#D0D0C0] transition-all text-sm font-semibold text-[#3A3A3A]"
+          >
+            <div className="w-7 h-7 bg-[#F3E8FF] rounded-full flex items-center justify-center flex-shrink-0">
+              <Globe className="h-3.5 w-3.5 text-[#7C3AED]" />
+            </div>
+            <span>Use your own domain</span>
+            <span className="ml-auto text-xs text-[#9A9A9A] font-normal">Set up →</span>
+          </button>
         </div>
       </div>
 
