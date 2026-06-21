@@ -1,45 +1,102 @@
 import { useGetMessages, getGetMessagesQueryKey } from "@workspace/api-client-react";
 import { useMailboxStore } from "@/hooks/use-mailbox-store";
+import { useState, useEffect } from "react";
+import { Copy, Check, ShieldCheck, Zap, Mail, TrendingUp, Clock, Inbox } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
-type Msg = { createdAt: string };
+function pad(n: number) { return String(n).padStart(2, "0"); }
 
-function BarChart({ messages }: { messages: Msg[] }) {
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 12) return { text: "Good morning", emoji: "☀️" };
+  if (h < 18) return { text: "Good afternoon", emoji: "⚡" };
+  return { text: "Good evening", emoji: "🌙" };
+}
+
+/* ── Premium bar chart ───────────────────────────────────────── */
+function ActivityChart({ messages }: { messages: { createdAt: string }[] }) {
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  const todayJs = new Date().getDay();
-  const todayBarIdx = todayJs === 0 ? 6 : todayJs - 1;
+  const todayJs  = new Date().getDay();
+  const todayIdx = todayJs === 0 ? 6 : todayJs - 1;
 
   const counts = days.map((_, i) => {
     const jsDay = (i + 1) % 7;
     return messages.filter((m) => new Date(m.createdAt).getDay() === jsDay).length;
   });
+  const max = Math.max(...counts, 1);
 
-  const max = Math.max(...counts, 4);
+  const W = 280, padL = 10, barW = 26, gap = 14;
+  const chartH = 80, baseY = 95;
 
   return (
-    <svg viewBox="0 0 280 116" className="w-full" xmlns="http://www.w3.org/2000/svg">
-      {[0, 0.33, 0.66, 1].map((pct, idx) => (
-        <line key={idx} x1="8" y1={90 - pct * 76} x2="272" y2={90 - pct * 76} stroke="#F0F0E4" strokeWidth="1" />
+    <svg viewBox={`0 0 ${W} 118`} className="w-full" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="barActive" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#7AB840" />
+          <stop offset="100%" stopColor="#4A8A10" />
+        </linearGradient>
+        <linearGradient id="barInactive" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#D8EAB8" />
+          <stop offset="100%" stopColor="#C4D8A0" />
+        </linearGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="2" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+      </defs>
+
+      {/* Grid lines */}
+      {[0, 0.33, 0.66, 1].map((pct, i) => (
+        <line key={i}
+          x1={padL} y1={baseY - pct * chartH}
+          x2={W - padL} y2={baseY - pct * chartH}
+          stroke="#F0EEE4" strokeWidth="1"
+        />
       ))}
+
       {days.map((day, i) => {
-        const barH = Math.max((counts[i] / max) * 76, 8);
-        const x = 16 + i * 36;
-        const y = 90 - barH;
-        const isToday = i === todayBarIdx;
+        const barH = Math.max((counts[i] / max) * chartH, 6);
+        const x    = padL + i * (barW + gap);
+        const y    = baseY - barH;
+        const isToday = i === todayIdx;
         const hasCount = counts[i] > 0;
+
         return (
           <g key={day}>
-            <rect x={x} y={y} width={24} height={barH} rx={5} fill={isToday ? "#7AB840" : "#DFE9C8"} />
-            <text x={x + 12} y={106} textAnchor="middle" fill={isToday ? "#5A5A5A" : "#ACACAC"} fontSize="8.5" fontFamily="Inter, sans-serif" fontWeight={isToday ? "600" : "400"}>
-              {day}
-            </text>
-            {isToday && hasCount && (
+            {/* Glow beneath active bar */}
+            {isToday && (
+              <ellipse cx={x + barW / 2} cy={baseY + 2} rx={barW / 2} ry={4}
+                fill="#7AB840" opacity="0.25" />
+            )}
+
+            {/* Bar */}
+            <rect
+              x={x} y={y} width={barW} height={barH} rx={6}
+              fill={isToday ? "url(#barActive)" : "url(#barInactive)"}
+              style={isToday ? { filter: "drop-shadow(0 2px 6px rgba(122,184,64,0.45))" } : {}}
+            />
+
+            {/* Count badge on bar */}
+            {hasCount && (
               <g>
-                <circle cx={x + 12} cy={y - 12} r={11} fill="#1A1A1A" />
-                <text x={x + 12} y={y - 8} textAnchor="middle" fill="white" fontSize="8.5" fontWeight="bold" fontFamily="Inter, sans-serif">
+                <circle cx={x + barW / 2} cy={y - 10} r={9}
+                  fill={isToday ? "#1A1A1A" : "#9A9A8A"} />
+                <text x={x + barW / 2} y={y - 6.5}
+                  textAnchor="middle" fill="white"
+                  fontSize="7.5" fontWeight="700" fontFamily="Inter, sans-serif">
                   {counts[i]}
                 </text>
               </g>
             )}
+
+            {/* Day label */}
+            <text x={x + barW / 2} y={112}
+              textAnchor="middle"
+              fill={isToday ? "#1A1A1A" : "#BCBCAC"}
+              fontSize="8" fontWeight={isToday ? "700" : "400"}
+              fontFamily="Inter, sans-serif">
+              {day}
+            </text>
           </g>
         );
       })}
@@ -47,8 +104,70 @@ function BarChart({ messages }: { messages: Msg[] }) {
   );
 }
 
+/* ── Expiry progress bar ─────────────────────────────────────── */
+function ExpiryProgress({ createdAt }: { createdAt: string }) {
+  const [pct, setPct] = useState(0);
+  const [timeLeft, setTimeLeft] = useState({ hrs: 23, mins: 59, secs: 59 });
+
+  useEffect(() => {
+    const tick = () => {
+      const elapsed  = Date.now() - new Date(createdAt).getTime();
+      const total    = 86400000;
+      const diff     = Math.max(0, total - elapsed);
+      setPct(Math.min(100, (elapsed / total) * 100));
+      setTimeLeft({
+        hrs:  Math.floor(diff / 3600000),
+        mins: Math.floor((diff % 3600000) / 60000),
+        secs: Math.floor((diff % 60000) / 1000),
+      });
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [createdAt]);
+
+  const color = pct > 75 ? "#EA4335" : pct > 50 ? "#F5A623" : "#7AB840";
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2.5">
+        <span className="text-xs font-semibold text-[#5A5A5A]">Expires in</span>
+        <span className="text-xs font-bold tabular-nums" style={{ color }}>
+          {pad(timeLeft.hrs)}:{pad(timeLeft.mins)}:{pad(timeLeft.secs)}
+        </span>
+      </div>
+      <div className="h-2 bg-[#F0EEE4] rounded-full overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all duration-1000"
+          style={{
+            width: `${pct}%`,
+            background: `linear-gradient(90deg, #7AB840, ${color})`,
+            boxShadow: `0 0 8px ${color}66`,
+          }}
+        />
+      </div>
+      <div className="flex justify-between mt-1.5">
+        <span className="text-[10px] text-[#ABABAB]">Created</span>
+        <span className="text-[10px] text-[#ABABAB]">Expires 24h</span>
+      </div>
+    </div>
+  );
+}
+
+const TIPS = [
+  { tip: "Use a different temp email for every site to track who's selling your data.", icon: "🕵️" },
+  { tip: "Share your temp address on public forums — never your real one.", icon: "🛡️" },
+  { tip: "Your inbox auto-refreshes every 5 seconds. No need to manually reload.", icon: "⚡" },
+  { tip: "Emails auto-delete in 24 hours. Screenshot anything important.", icon: "📸" },
+  { tip: "Copy your address with one tap — paste it anywhere instantly.", icon: "📋" },
+];
+
+/* ── Main page ───────────────────────────────────────────────── */
 export default function ActivityPage() {
   const { mailbox } = useMailboxStore();
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
+  const [tipIdx, setTipIdx] = useState(0);
 
   const { data: messages = [] } = useGetMessages(mailbox?.id ?? "", {
     query: {
@@ -57,87 +176,210 @@ export default function ActivityPage() {
     },
   });
 
-  const today = new Date().toDateString();
-  const todayCount = messages.filter((m) => new Date(m.createdAt).toDateString() === today).length;
-  const initial = mailbox?.address?.charAt(0).toUpperCase() ?? "T";
+  // Rotate tips every 5s
+  useEffect(() => {
+    const id = setInterval(() => setTipIdx(i => (i + 1) % TIPS.length), 5000);
+    return () => clearInterval(id);
+  }, []);
 
-  const statCards = [
-    {
-      label: "Emails received",
-      value: messages.length,
-      sub: `+${todayCount} today`,
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-          <path d="M2 11 L5.5 6.5 L8 9 L10.5 5.5 L13 11" stroke="#7AB840" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      ),
-    },
-    {
-      label: "Active emails",
-      value: mailbox ? 1 : 0,
-      sub: `+${mailbox ? 1 : 0} today`,
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-          <path d="M1.5 4 L7.5 9 L13.5 4 M1.5 4 H13.5 V12 H1.5 V4Z" stroke="#7AB840" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      ),
-    },
-  ];
+  const today       = new Date().toDateString();
+  const todayCount  = messages.filter((m) => new Date(m.createdAt).toDateString() === today).length;
+  const unreadCount = messages.filter((m) => !m.seen).length;
+  const { text: greet, emoji } = greeting();
+  const tip = TIPS[tipIdx];
+
+  const copyAddress = () => {
+    if (!mailbox?.address) return;
+    navigator.clipboard.writeText(mailbox.address);
+    setCopied(true);
+    toast({ title: "Copied!", description: "Email address copied." });
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
-    <div className="flex flex-col h-full bg-[#F4F4E4] overflow-y-auto">
-      <div className="w-full max-w-3xl mx-auto px-5 md:px-8 pt-6 pb-32">
+    <div className="flex flex-col h-full bg-[#F0F0E4] overflow-y-auto">
+      <div className="w-full max-w-2xl mx-auto px-4 pt-5 pb-28 space-y-3">
 
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6 anim-slide-up">
-          <div>
-            <h1 className="text-2xl font-bold text-[#1A1A1A]">Hi there!</h1>
-            <p className="text-sm text-[#7A7A7A]">Here's your email activity</p>
-          </div>
-          <div className="w-11 h-11 bg-[#7AB840] rounded-full flex items-center justify-center text-white font-bold text-base shadow-sm">
-            {initial}
+        {/* ── Hero header card ─────────────────────────────────── */}
+        <div
+          className="relative rounded-3xl overflow-hidden anim-slide-up"
+          style={{ background: "linear-gradient(145deg, #111111 0%, #1C2E0A 55%, #0F1F05 100%)" }}
+        >
+          {/* Decorative blobs */}
+          <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-[0.07]"
+            style={{ background: "radial-gradient(circle, #7AB840, transparent)" }} />
+          <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full opacity-[0.07]"
+            style={{ background: "radial-gradient(circle, #7AB840, transparent)" }} />
+
+          <div className="relative p-5">
+            {/* Greeting */}
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-white/50 text-xs font-medium tracking-wide uppercase mb-0.5">
+                  {emoji} {greet}
+                </p>
+                <h1 className="text-white text-xl font-extrabold tracking-tight">
+                  Your Activity
+                </h1>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#7AB840] shadow-[0_0_8px_#7AB840]" />
+                <span className="text-[#7AB840] text-[11px] font-bold tracking-wide">ACTIVE</span>
+              </div>
+            </div>
+
+            {/* Email address row */}
+            <button
+              onClick={copyAddress}
+              className="w-full flex items-center gap-3 bg-white/[0.07] hover:bg-white/[0.12] border border-white/[0.08] rounded-2xl px-4 py-3 transition-colors group mb-4"
+            >
+              <div className="w-8 h-8 bg-[#7AB840] rounded-xl flex items-center justify-center flex-shrink-0">
+                <Mail className="h-4 w-4 text-white" />
+              </div>
+              <span className="flex-1 text-white/80 text-sm font-medium truncate text-left">
+                {mailbox?.address ?? "No mailbox active"}
+              </span>
+              <span className={`flex-shrink-0 transition-colors ${copied ? "text-[#7AB840]" : "text-white/30 group-hover:text-white/60"}`}>
+                {copied
+                  ? <Check className="h-4 w-4" />
+                  : <Copy className="h-4 w-4" />
+                }
+              </span>
+            </button>
+
+            {/* Expiry countdown */}
+            {mailbox?.createdAt && <ExpiryProgress createdAt={mailbox.createdAt} />}
           </div>
         </div>
 
-        {/* Stat cards */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          {statCards.map((card, i) => (
+        {/* ── Stat cards ───────────────────────────────────────── */}
+        <div className="grid grid-cols-3 gap-2.5 anim-slide-up" style={{ animationDelay: "60ms" }}>
+          {[
+            {
+              label: "Received",
+              value: messages.length,
+              sub: `+${todayCount} today`,
+              icon: <TrendingUp className="h-4 w-4" />,
+              accent: "#7AB840",
+              bg: "#EDFAD3",
+            },
+            {
+              label: "Unread",
+              value: unreadCount,
+              sub: unreadCount === 0 ? "All read" : "new",
+              icon: <Inbox className="h-4 w-4" />,
+              accent: "#3B82F6",
+              bg: "#DBEAFE",
+            },
+            {
+              label: "Mailbox",
+              value: mailbox ? 1 : 0,
+              sub: mailbox ? "active" : "none",
+              icon: <Zap className="h-4 w-4" />,
+              accent: "#A855F7",
+              bg: "#F3E8FF",
+            },
+          ].map((s, i) => (
             <div
-              key={card.label}
-              className="bg-white rounded-2xl p-4 shadow-[0_1px_4px_rgba(0,0,0,0.05)] anim-slide-up"
-              style={{ animationDelay: `${50 + i * 60}ms` }}
+              key={s.label}
+              className="bg-white rounded-2xl p-3.5 shadow-[0_2px_12px_rgba(0,0,0,0.05)]"
+              style={{ animationDelay: `${80 + i * 50}ms` }}
             >
-              <p className="text-xs text-[#9A9A9A] mb-1">{card.label}</p>
-              <p className="text-3xl font-bold text-[#1A1A1A] tabular-nums">{card.value}</p>
-              <p className="text-xs text-[#7AB840] mt-1 font-semibold">{card.sub}</p>
-              <div className="mt-3 w-8 h-8 bg-[#EBF4D8] rounded-full flex items-center justify-center">
-                {card.icon}
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center mb-2.5"
+                style={{ backgroundColor: s.bg, color: s.accent }}
+              >
+                {s.icon}
               </div>
+              <div className="text-2xl font-extrabold text-[#1A1A1A] tabular-nums leading-none mb-1">
+                {s.value}
+              </div>
+              <div className="text-[10px] text-[#9A9A9A] font-medium leading-none mb-0.5">{s.label}</div>
+              <div className="text-[10px] font-bold" style={{ color: s.accent }}>{s.sub}</div>
             </div>
           ))}
         </div>
 
-        {/* Bar chart */}
-        <div className="bg-white rounded-2xl p-4 mb-4 shadow-[0_1px_4px_rgba(0,0,0,0.05)] anim-slide-up" style={{ animationDelay: "170ms" }}>
-          <h2 className="font-semibold text-[#1A1A1A] mb-4 text-sm">Recent Activity</h2>
-          <BarChart messages={messages} />
+        {/* ── Activity chart ───────────────────────────────────── */}
+        <div
+          className="bg-white rounded-3xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.05)] anim-slide-up"
+          style={{ animationDelay: "180ms" }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="font-bold text-[#1A1A1A] text-sm">Weekly Activity</h2>
+              <p className="text-[11px] text-[#9A9A9A] mt-0.5">Emails received per day</p>
+            </div>
+            <div className="flex items-center gap-3 text-[10px] font-semibold text-[#9A9A9A]">
+              <div className="flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-sm bg-[#7AB840] inline-block" />
+                Today
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-sm bg-[#D8EAB8] inline-block" />
+                Other
+              </div>
+            </div>
+          </div>
+          <ActivityChart messages={messages} />
         </div>
 
-        {/* Tips */}
-        <div className="bg-white rounded-2xl p-4 shadow-[0_1px_4px_rgba(0,0,0,0.05)] anim-slide-up" style={{ animationDelay: "230ms" }}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1">
-              <h2 className="font-semibold text-[#1A1A1A] mb-1 text-sm">Tips</h2>
-              <p className="text-xs text-[#7A7A7A] leading-relaxed">
-                Use aliases for different signups to stay organized and private.
-              </p>
+        {/* ── Privacy status card ──────────────────────────────── */}
+        <div
+          className="rounded-3xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.05)] anim-slide-up"
+          style={{
+            animationDelay: "240ms",
+            background: "linear-gradient(135deg, #EDFAD3 0%, #E0F5C0 100%)",
+          }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-7 h-7 bg-[#7AB840] rounded-xl flex items-center justify-center">
+              <ShieldCheck className="h-4 w-4 text-white" />
             </div>
-            <div className="w-10 h-10 bg-[#FBF5D8] rounded-full flex items-center justify-center flex-shrink-0">
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <path d="M9 2a5 5 0 0 1 3.8 8.2L12 12H6l-.8-1.8A5 5 0 0 1 9 2Z" stroke="#E8A820" strokeWidth="1.4" strokeLinejoin="round" />
-                <path d="M6.5 14h5M7 16h4" stroke="#E8A820" strokeWidth="1.4" strokeLinecap="round" />
-              </svg>
-            </div>
+            <span className="font-bold text-[#2A4A10] text-sm">Privacy Protected</span>
+          </div>
+          <div className="space-y-2">
+            {[
+              "No personal data collected",
+              "No tracking or analytics",
+              "Messages encrypted in transit",
+              "Auto-deleted after 24 hours",
+            ].map((item) => (
+              <div key={item} className="flex items-center gap-2">
+                <span className="text-[#7AB840] font-bold text-xs">✓</span>
+                <span className="text-xs text-[#3A5A18] font-medium">{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Rotating tip card ────────────────────────────────── */}
+        <div
+          className="bg-white rounded-3xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.05)] anim-slide-up"
+          style={{ animationDelay: "300ms" }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Clock className="h-3.5 w-3.5 text-[#9A9A9A]" />
+            <span className="text-xs font-semibold text-[#9A9A9A] uppercase tracking-wide">Pro Tip</span>
+          </div>
+          <div className="flex items-start gap-3">
+            <span className="text-2xl flex-shrink-0 mt-0.5">{tip.icon}</span>
+            <p className="text-sm text-[#3A3A3A] leading-relaxed font-medium">{tip.tip}</p>
+          </div>
+          {/* Dot indicators */}
+          <div className="flex items-center justify-center gap-1.5 mt-4">
+            {TIPS.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setTipIdx(i)}
+                className="rounded-full transition-all duration-300"
+                style={{
+                  width:      i === tipIdx ? 16 : 6,
+                  height:     6,
+                  background: i === tipIdx ? "#7AB840" : "#E0E0D8",
+                }}
+              />
+            ))}
           </div>
         </div>
 
