@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://tempmail.onrender.com/sitemap.xml
+Sitemap: https://mail-temp.eu.cc/sitemap.xml
