@@ -23,77 +23,92 @@ function ActivityChart({ messages }: { messages: { createdAt: string }[] }) {
     const jsDay = (i + 1) % 7;
     return messages.filter((m) => new Date(m.createdAt).getDay() === jsDay).length;
   });
-  const max = Math.max(...counts, 1);
 
-  const W = 280, padL = 10, barW = 26, gap = 14;
-  const chartH = 80, baseY = 95;
+  // Always use at least 5 as the ceiling so a single email never fills the full bar
+  const max = Math.max(...counts, 5);
+
+  // Bar geometry
+  const W = 300, chartH = 90, baseY = 100;
+  const barW = 26, totalBars = 7;
+  const totalBarSpace = barW * totalBars;
+  const gap = (W - totalBarSpace) / (totalBars + 1); // even spacing with edge padding
 
   return (
-    <svg viewBox={`0 0 ${W} 118`} className="w-full" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox={`0 0 ${W} 120`} className="w-full" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="barActive" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#7AB840" />
-          <stop offset="100%" stopColor="#4A8A10" />
+          <stop offset="0%" stopColor="#8ED44A" />
+          <stop offset="100%" stopColor="#5A9A1A" />
         </linearGradient>
         <linearGradient id="barInactive" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#D8EAB8" />
-          <stop offset="100%" stopColor="#C4D8A0" />
+          <stop offset="0%" stopColor="#E4F0CE" />
+          <stop offset="100%" stopColor="#D4E8B8" />
         </linearGradient>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="2" result="blur" />
-          <feComposite in="SourceGraphic" in2="blur" operator="over" />
-        </filter>
       </defs>
 
-      {/* Grid lines */}
-      {[0, 0.33, 0.66, 1].map((pct, i) => (
+      {/* Horizontal grid lines */}
+      {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => (
         <line key={i}
-          x1={padL} y1={baseY - pct * chartH}
-          x2={W - padL} y2={baseY - pct * chartH}
-          stroke="#F0EEE4" strokeWidth="1"
+          x1={gap} y1={baseY - pct * chartH}
+          x2={W - gap} y2={baseY - pct * chartH}
+          stroke={pct === 0 ? "#E0DDD4" : "#F2F0E8"} strokeWidth={pct === 0 ? 1.5 : 1}
         />
       ))}
 
       {days.map((day, i) => {
-        const barH = Math.max((counts[i] / max) * chartH, 6);
-        const x    = padL + i * (barW + gap);
-        const y    = baseY - barH;
-        const isToday = i === todayIdx;
-        const hasCount = counts[i] > 0;
+        const x = gap + i * (barW + gap);
+        const isToday  = i === todayIdx;
+        const count    = counts[i];
+        const hasCount = count > 0;
+
+        // Only filled bars for non-zero counts; empty days get a light track
+        const trackH = 4;
+        const barH   = hasCount ? Math.max((count / max) * chartH, 10) : 0;
+        const barY   = baseY - barH;
 
         return (
           <g key={day}>
-            {/* Glow beneath active bar */}
-            {isToday && (
-              <ellipse cx={x + barW / 2} cy={baseY + 2} rx={barW / 2} ry={4}
-                fill="#7AB840" opacity="0.25" />
-            )}
-
-            {/* Bar */}
+            {/* Background track (always visible, very subtle) */}
             <rect
-              x={x} y={y} width={barW} height={barH} rx={6}
-              fill={isToday ? "url(#barActive)" : "url(#barInactive)"}
-              style={isToday ? { filter: "drop-shadow(0 2px 6px rgba(122,184,64,0.45))" } : {}}
+              x={x} y={baseY - chartH} width={barW} height={chartH} rx={6}
+              fill={isToday ? "rgba(122,184,64,0.07)" : "rgba(0,0,0,0.03)"}
             />
 
-            {/* Count badge on bar */}
+            {/* Bottom tick for empty days */}
+            {!hasCount && (
+              <rect x={x} y={baseY - trackH} width={barW} height={trackH} rx={3}
+                fill={isToday ? "#B8D880" : "#DDE8CC"} />
+            )}
+
+            {/* Actual filled bar */}
             {hasCount && (
-              <g>
-                <circle cx={x + barW / 2} cy={y - 10} r={9}
-                  fill={isToday ? "#1A1A1A" : "#9A9A8A"} />
-                <text x={x + barW / 2} y={y - 6.5}
+              <>
+                {/* Glow */}
+                {isToday && (
+                  <ellipse cx={x + barW / 2} cy={baseY} rx={barW * 0.7} ry={5}
+                    fill="#7AB840" opacity="0.2" />
+                )}
+                <rect
+                  x={x} y={barY} width={barW} height={barH} rx={6}
+                  fill={isToday ? "url(#barActive)" : "url(#barInactive)"}
+                  style={isToday ? { filter: "drop-shadow(0 3px 8px rgba(122,184,64,0.5))" } : {}}
+                />
+                {/* Count badge above bar */}
+                <circle cx={x + barW / 2} cy={barY - 11} r={10}
+                  fill={isToday ? "#1A1A1A" : "#8A8A7A"} />
+                <text x={x + barW / 2} y={barY - 7}
                   textAnchor="middle" fill="white"
-                  fontSize="7.5" fontWeight="700" fontFamily="Inter, sans-serif">
-                  {counts[i]}
+                  fontSize="8" fontWeight="700" fontFamily="Inter, sans-serif">
+                  {count}
                 </text>
-              </g>
+              </>
             )}
 
             {/* Day label */}
-            <text x={x + barW / 2} y={112}
+            <text x={x + barW / 2} y={115}
               textAnchor="middle"
-              fill={isToday ? "#1A1A1A" : "#BCBCAC"}
-              fontSize="8" fontWeight={isToday ? "700" : "400"}
+              fill={isToday ? "#1A1A1A" : "#C0BDB4"}
+              fontSize="8.5" fontWeight={isToday ? "700" : "400"}
               fontFamily="Inter, sans-serif">
               {day}
             </text>
