@@ -1,45 +1,95 @@
-# [Project name]
+# Temp Mail
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A temporary email app that lets users instantly create disposable email addresses — no sign-up needed. Supports Mail.tm, Guerrilla Mail, and TempMail.lol providers.
 
-## Run & Operate
+## How to Run (Development)
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+Two services must be running at the same time. They are already configured as workflows in Replit — just press the **Run** button or start them from the workflow panel:
+
+| Workflow | What it does | Port |
+|---|---|---|
+| `artifacts/tempmail: web` | React frontend (Vite) | 18652 |
+| `artifacts/api-server: API Server` | Express backend API | 8080 |
+
+To start them manually from the shell:
+```bash
+# Terminal 1 — API backend
+PORT=8080 pnpm --filter @workspace/api-server run dev
+
+# Terminal 2 — Frontend
+PORT=18652 BASE_PATH=/ pnpm --filter @workspace/tempmail run dev
+```
+
+## Project Structure
+
+```
+artifacts/
+  tempmail/          ← React + Vite frontend
+  api-server/        ← Express 5 backend API
+lib/
+  api-client-react/  ← Auto-generated React Query hooks (from OpenAPI spec)
+  api-spec/          ← openapi.yaml — single source of truth for all API contracts
+  api-zod/           ← Auto-generated Zod schemas
+render.yaml          ← Render.com deployment config
+```
 
 ## Stack
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- **Frontend:** React 18, Vite 7, Tailwind CSS, shadcn/ui, React Query, Wouter (routing)
+- **Backend:** Express 5, Node.js 24, TypeScript 5.9
+- **Monorepo:** pnpm workspaces
+- **No database** — sessions are stored in-memory on the server; email data comes from external providers
+- **Build:** esbuild (backend), Vite (frontend)
 
-## Where things live
+## API
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+The OpenAPI spec lives at `lib/api-spec/openapi.yaml`. All routes are under `/api`:
 
-## Architecture decisions
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/healthz` | Health check |
+| GET | `/api/domains` | List available email domains |
+| GET | `/api/providers` | List email providers |
+| POST | `/api/mailbox` | Create a new temp mailbox |
+| GET | `/api/mailbox/:id/messages` | List messages in a mailbox |
+| GET | `/api/mailbox/:id/messages/:msgId` | Get a specific message |
+| DELETE | `/api/mailbox/:id/messages/:msgId` | Delete a message |
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+## Deployment (Render.com)
 
-## Product
+The app is configured to deploy as a **single service** on Render — the Express backend serves both the API and the built React frontend in production.
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+**Build command** (set in Render dashboard → Settings):
+```
+npx --yes pnpm@10 install --frozen-lockfile && npx pnpm@10 --filter @workspace/tempmail run build && npx pnpm@10 --filter @workspace/api-server run build
+```
 
-## User preferences
+**Start command:**
+```
+node --enable-source-maps artifacts/api-server/dist/index.mjs
+```
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+**Environment variables on Render:**
+- `NODE_ENV` = `production`
+- `PORT` = `10000` (Render sets this automatically)
 
-## Gotchas
+To redeploy: push changes to GitHub → Render auto-deploys (or use Manual Deploy in the Render dashboard).
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+## Architecture Decisions
 
-## Pointers
+- **No database** — The backend proxies requests to real email provider APIs (Mail.tm, Guerrilla Mail, TempMail.lol). Sessions are kept in a server-side `Map`. This means sessions reset on server restart — acceptable for a temp mail use case.
+- **Single Render service** — In production, Express serves the React static build from `artifacts/tempmail/dist/public` + handles all `/api` routes. No CORS issues, no two services to manage.
+- **Express 5** — Uses `/{*splat}` syntax for wildcard routes (not `*` which Express 5 / path-to-regexp v8 rejected).
+- **OpenAPI-first** — `lib/api-spec/openapi.yaml` is the source of truth. React Query hooks in `lib/api-client-react/src/generated/` are generated from it via Orval. Run codegen with: `pnpm --filter @workspace/api-spec run codegen`
 
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+## What's Left / Ideas
+
+- Auto-refresh inbox every 10–15 seconds so emails appear without manual reload
+- Copy email address button on the home screen
+- Support choosing a provider (Mail.tm vs Guerrilla vs TempMail.lol) from the UI
+- Persist session across server restarts (would need a DB or Redis)
+
+## User Preferences
+
+- Wants the app deployable on Render.com (free tier)
+- GitHub repo: https://github.com/The-habib/Temp-mail
