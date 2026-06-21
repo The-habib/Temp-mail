@@ -491,8 +491,8 @@ export default function HomePage() {
               <div className="flex-1 overflow-auto">
                 {selectedMessage.html ? (
                   <iframe
-                    srcDoc={`<style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;padding:16px;color:#1A1A1A;font-size:14px;line-height:1.6;word-break:break-word}img{max-width:100%;height:auto}a{color:#4A7A10}</style>${selectedMessage.html}`}
-                    sandbox="allow-same-origin"
+                    srcDoc={`<!DOCTYPE html><html><head><base target="_blank"><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;padding:16px;color:#1A1A1A;font-size:14px;line-height:1.6;word-break:break-word}img{max-width:100%;height:auto}a{color:#4A7A10}a:hover{opacity:0.8}button,a[href]{cursor:pointer}</style></head><body>${selectedMessage.html}</body></html>`}
+                    sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
                     title="Email content"
                     className="w-full border-0 block"
                     style={{ height: "100%", minHeight: "400px" }}
