@@ -142,22 +142,62 @@ export default function HomePage() {
   const unreadCount = messages.filter((m) => !m.seen).length;
 
   return (
-    <div className="flex flex-col md:flex-row md:h-full md:overflow-hidden bg-[#F0F0E4]">
+    /* ALWAYS full-height, never overflows — inbox always has room to scroll */
+    <div className="h-full overflow-hidden flex flex-col md:flex-row bg-[#F0F0E4]">
 
-      {/* ── LEFT PANEL ──────────────────────────────────────────── */}
-      <div className="md:w-[300px] lg:w-[340px] md:flex-shrink-0 md:h-full md:overflow-y-auto">
-        <div className="p-4 space-y-3">
+      {/* ── LEFT PANEL — full sidebar on desktop, compact strip on mobile ── */}
+      <div className="md:w-[300px] lg:w-[340px] md:flex-shrink-0 md:h-full md:overflow-y-auto flex-shrink-0">
+
+        {/* MOBILE: compact dark card only, no countdown/stats */}
+        <div className="md:hidden p-3">
+          <div
+            className="relative rounded-2xl overflow-hidden"
+            style={{ background: "linear-gradient(135deg, #1A1A1A 0%, #2D3A1A 50%, #1A2A0A 100%)" }}
+          >
+            <div className="relative px-4 py-3 flex items-center gap-3">
+              <div className="w-7 h-7 bg-[#7AB840] rounded-lg flex items-center justify-center flex-shrink-0">
+                <Mail className="h-3.5 w-3.5 text-white" strokeWidth={2} />
+              </div>
+              <button onClick={copyToClipboard} className="flex-1 min-w-0 text-left">
+                <div className="text-white font-semibold text-sm truncate">{mailbox?.address ?? "Loading..."}</div>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#7AB840]" />
+                  <span
+                    className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                    style={{ backgroundColor: providerMeta.bg, color: providerMeta.text }}
+                  >{providerMeta.name}</span>
+                </div>
+              </button>
+              <div className="flex gap-1.5 flex-shrink-0">
+                <button
+                  onClick={copyToClipboard}
+                  className={`w-8 h-8 flex items-center justify-center rounded-xl text-white transition-colors ${copied ? "bg-[#7AB840]" : "bg-white/15 hover:bg-white/25"}`}
+                  data-testid="button-copy"
+                >
+                  {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                </button>
+                <button
+                  onClick={() => navigate("/create")}
+                  className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/15 text-white hover:bg-white/25 transition-colors"
+                  data-testid="button-change"
+                >
+                  <Edit3 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* DESKTOP: full panel with all widgets */}
+        <div className="hidden md:block p-4 space-y-3">
 
           {/* Email address card */}
           <div className="relative rounded-3xl overflow-hidden" style={{
             background: "linear-gradient(135deg, #1A1A1A 0%, #2D3A1A 50%, #1A2A0A 100%)",
           }}>
-            {/* Decorative circles */}
             <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-10" style={{ background: "radial-gradient(circle, #7AB840, transparent)" }} />
             <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full opacity-10" style={{ background: "radial-gradient(circle, #7AB840, transparent)" }} />
-
             <div className="relative p-5">
-              {/* Top row */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 bg-[#7AB840] rounded-lg flex items-center justify-center">
@@ -170,27 +210,15 @@ export default function HomePage() {
                   <span className="text-[#7AB840] text-[10px] font-semibold">ACTIVE</span>
                 </div>
               </div>
-
-              {/* Email address */}
-              <button
-                onClick={copyToClipboard}
-                className="w-full text-left mb-4 group"
-                data-testid="button-copy"
-              >
+              <button onClick={copyToClipboard} className="w-full text-left mb-4 group" data-testid="button-copy">
                 <div className="text-white font-semibold text-sm break-all leading-relaxed group-hover:text-[#7AB840] transition-colors">
                   {mailbox?.address ?? "Loading..."}
                 </div>
               </button>
-
-              {/* Copy + Change row */}
               <div className="flex gap-2">
                 <button
                   onClick={copyToClipboard}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                    copied
-                      ? "bg-[#7AB840] text-white"
-                      : "bg-white/10 text-white hover:bg-white/20"
-                  }`}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${copied ? "bg-[#7AB840] text-white" : "bg-white/10 text-white hover:bg-white/20"}`}
                 >
                   {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                   {copied ? "Copied!" : "Copy"}
@@ -204,13 +232,8 @@ export default function HomePage() {
                   Change
                 </button>
               </div>
-
-              {/* Provider badge */}
               <div className="mt-3 flex items-center gap-2">
-                <span
-                  className="text-[10px] font-bold px-2.5 py-1 rounded-full"
-                  style={{ backgroundColor: providerMeta.bg, color: providerMeta.text }}
-                >
+                <span className="text-[10px] font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: providerMeta.bg, color: providerMeta.text }}>
                   {providerMeta.name}
                 </span>
                 <span className="text-white/30 text-[10px]">via secure proxy</span>
@@ -218,25 +241,18 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Countdown card */}
+          {/* Countdown */}
           <div className="bg-white rounded-3xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
             <div className="flex items-center gap-2 mb-4">
               <Clock className="h-3.5 w-3.5 text-[#9A9A8A]" />
               <span className="text-xs text-[#9A9A8A] font-medium">Expires in</span>
             </div>
             <div className="flex items-center justify-center gap-2">
-              {[
-                { val: timeLeft.hrs,  label: "HRS"  },
-                { val: timeLeft.mins, label: "MIN" },
-                { val: timeLeft.secs, label: "SEC" },
-              ].map((item, i) => (
+              {[{ val: timeLeft.hrs, label: "HRS" }, { val: timeLeft.mins, label: "MIN" }, { val: timeLeft.secs, label: "SEC" }].map((item, i) => (
                 <div key={i} className="flex items-center gap-2">
                   {i > 0 && <span className="text-2xl font-light text-[#D0D0C0] mb-3">:</span>}
-                  <div className="flex-1 text-center">
-                    <div
-                      className="w-16 h-14 rounded-2xl flex items-center justify-center mb-1.5"
-                      style={{ background: "linear-gradient(135deg, #F8F8F0, #EFEFDF)" }}
-                    >
+                  <div className="text-center">
+                    <div className="w-16 h-14 rounded-2xl flex items-center justify-center mb-1.5" style={{ background: "linear-gradient(135deg, #F8F8F0, #EFEFDF)" }}>
                       <span className="text-2xl font-bold text-[#1A1A1A] tabular-nums">{pad(item.val)}</span>
                     </div>
                     <div className="text-[9px] text-[#ABABAB] uppercase tracking-widest font-semibold">{item.label}</div>
@@ -246,7 +262,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Stats row */}
+          {/* Stats */}
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-white rounded-2xl p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
               <div className="flex items-center gap-1.5 mb-2">
@@ -266,23 +282,22 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Privacy badge */}
+          {/* Privacy */}
           <div className="flex items-center gap-2.5 px-4 py-3 bg-[#EDFAD3] rounded-2xl">
             <ShieldCheck className="h-4 w-4 text-[#4A7A10] flex-shrink-0" />
             <span className="text-xs text-[#4A7A10] font-medium">No tracking · Auto-deletes in 24h</span>
           </div>
-
         </div>
       </div>
 
-      {/* ── RIGHT: Inbox ────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col bg-white md:h-full md:overflow-hidden rounded-t-[32px] md:rounded-none shadow-[0_-4px_24px_rgba(0,0,0,0.06)] md:shadow-none">
+      {/* ── RIGHT: Inbox — always flex-1 with its own scroll ──────── */}
+      <div className="flex-1 flex flex-col min-h-0 bg-white md:rounded-none rounded-t-[28px] shadow-[0_-4px_24px_rgba(0,0,0,0.06)] md:shadow-none overflow-hidden">
 
-        {/* Inbox header */}
-        <div className="px-5 pt-5 pb-3 flex-shrink-0">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <h2 className="text-xl font-bold text-[#1A1A1A] tracking-tight">Inbox</h2>
+        {/* Header — fixed, never scrolls */}
+        <div className="flex-shrink-0 px-4 pt-4 pb-3 border-b border-[#F0F0E8]">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2.5">
+              <h2 className="text-lg font-bold text-[#1A1A1A] tracking-tight">Inbox</h2>
               {unreadCount > 0 && (
                 <span className="text-[11px] bg-[#7AB840] text-white rounded-full px-2.5 py-0.5 font-bold shadow-[0_2px_8px_rgba(122,184,64,0.35)] anim-pop">
                   {unreadCount} new
@@ -300,30 +315,27 @@ export default function HomePage() {
           </div>
 
           {/* Filter tabs */}
-          <div className="flex gap-1.5 p-1 bg-[#F4F4EA] rounded-2xl">
+          <div className="flex gap-1 p-1 bg-[#F4F4EA] rounded-xl">
             {(["All", "Unread", "Read"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setFilter(tab)}
-                className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
+                className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
                   filter === tab
                     ? "bg-white text-[#1A1A1A] shadow-[0_1px_4px_rgba(0,0,0,0.08)]"
                     : "text-[#8A8A7A] hover:text-[#4A4A4A]"
                 }`}
               >
-                {tab}
-                {tab === "Unread" && unreadCount > 0 && (
-                  <span className="ml-1 text-[#7AB840]">({unreadCount})</span>
-                )}
+                {tab}{tab === "Unread" && unreadCount > 0 ? ` (${unreadCount})` : ""}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Message list — scrollable on desktop, natural flow on mobile */}
-        <div className="md:flex-1 md:overflow-y-auto px-4 pb-24 md:pb-6">
+        {/* Message list — THIS is the only scroll container, fills all remaining space */}
+        <div className="flex-1 overflow-y-auto px-3 py-2 pb-20 md:pb-4">
           {isLoadingMessages ? (
-            <div className="space-y-3 pt-2">
+            <div className="space-y-2 pt-1">
               {[0, 1, 2].map((i) => (
                 <div key={i} className="flex items-start gap-3 p-4 rounded-2xl bg-[#FAFAF6]">
                   <Skeleton className="w-11 h-11 rounded-2xl flex-shrink-0" />
@@ -339,8 +351,8 @@ export default function HomePage() {
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center anim-fade">
-              <div className="relative mb-6">
+            <div className="flex flex-col items-center justify-center h-full py-12 text-center anim-fade">
+              <div className="relative mb-5">
                 <div className="w-20 h-20 bg-[#F4F4EA] rounded-3xl flex items-center justify-center">
                   <Mail className="h-9 w-9 text-[#C8C8B0]" strokeWidth={1.2} />
                 </div>
@@ -348,20 +360,20 @@ export default function HomePage() {
                   <span className="text-white text-[10px] font-bold">0</span>
                 </div>
               </div>
-              <p className="font-bold text-[#1A1A1A] text-base mb-2">No messages yet</p>
-              <p className="text-sm text-[#9A9A8A] max-w-[190px] leading-relaxed">
-                Share your address and emails will appear here automatically.
+              <p className="font-bold text-[#1A1A1A] text-base mb-1.5">No messages yet</p>
+              <p className="text-sm text-[#9A9A8A] max-w-[180px] leading-relaxed mb-5">
+                Share your address and emails will appear here.
               </p>
               <button
                 onClick={copyToClipboard}
-                className="mt-5 flex items-center gap-2 px-5 py-2.5 bg-[#1A1A1A] text-white text-sm font-semibold rounded-full hover:bg-[#2A2A2A] transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-[#1A1A1A] text-white text-sm font-semibold rounded-full hover:bg-[#2A2A2A] transition-colors"
               >
                 <Copy className="h-3.5 w-3.5" />
                 Copy address
               </button>
             </div>
           ) : (
-            <div className="space-y-2 pt-2">
+            <div className="space-y-2 pt-1">
               {filtered.map((msg, i) => {
                 const senderText = msg.from.name || msg.from.address;
                 const initial = senderText.charAt(0).toUpperCase();
@@ -371,40 +383,33 @@ export default function HomePage() {
                     key={msg.id}
                     onClick={() => setSelectedMessageId(msg.id)}
                     data-testid={`message-item-${msg.id}`}
-                    className={`w-full flex items-start gap-3.5 p-4 text-left rounded-2xl transition-all duration-200 anim-slide-up group ${
-                      !msg.seen
-                        ? "bg-[#F8FAF4] hover:bg-[#F2F7EC]"
-                        : "bg-[#FAFAF8] hover:bg-[#F5F5F0]"
+                    className={`w-full flex items-start gap-3 p-3.5 text-left rounded-2xl transition-all duration-200 anim-slide-up ${
+                      !msg.seen ? "bg-[#F8FAF4] hover:bg-[#F0F7E8]" : "bg-[#FAFAF8] hover:bg-[#F5F5F0]"
                     }`}
-                    style={{ animationDelay: `${i * 45}ms` }}
+                    style={{ animationDelay: `${i * 40}ms` }}
                   >
-                    {/* Avatar */}
                     <div
-                      className="w-11 h-11 rounded-2xl flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-sm"
+                      className="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm"
                       style={{ background: `linear-gradient(135deg, ${gradFrom}, ${gradTo})` }}
                     >
                       {initial}
                     </div>
-
-                    {/* Content */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between mb-1 gap-2">
+                      <div className="flex items-center justify-between gap-2 mb-0.5">
                         <span className={`text-sm truncate ${!msg.seen ? "font-bold text-[#1A1A1A]" : "font-semibold text-[#3A3A3A]"}`}>
                           {senderText}
                         </span>
-                        <span className="text-[10px] text-[#BCBCAC] flex-shrink-0 mt-0.5">
+                        <span className="text-[10px] text-[#BCBCAC] flex-shrink-0">
                           {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: false })}
                         </span>
                       </div>
-                      <div className={`text-sm truncate mb-1 ${!msg.seen ? "font-semibold text-[#2A2A2A]" : "font-medium text-[#5A5A5A]"}`}>
+                      <div className={`text-sm truncate mb-0.5 ${!msg.seen ? "font-semibold text-[#2A2A2A]" : "font-medium text-[#5A5A5A]"}`}>
                         {msg.subject || "No Subject"}
                       </div>
-                      <div className="text-xs text-[#9A9A8A] truncate leading-relaxed">{msg.intro}</div>
+                      <div className="text-xs text-[#9A9A8A] truncate">{msg.intro}</div>
                     </div>
-
-                    {/* Unread dot */}
                     {!msg.seen && (
-                      <div className="w-2 h-2 bg-[#7AB840] rounded-full flex-shrink-0 mt-2 shadow-[0_0_6px_rgba(122,184,64,0.6)]" />
+                      <div className="w-2 h-2 bg-[#7AB840] rounded-full flex-shrink-0 mt-2 shadow-[0_0_5px_rgba(122,184,64,0.6)]" />
                     )}
                   </button>
                 );
@@ -420,13 +425,12 @@ export default function HomePage() {
           side="bottom"
           className="h-[92vh] md:h-[88vh] rounded-t-[28px] p-0 border-0 bg-white focus-visible:outline-none"
         >
-          {/* Handle */}
-          <div className="flex justify-center pt-3 pb-0 flex-shrink-0">
+          <div className="flex justify-center pt-3 flex-shrink-0">
             <div className="w-12 h-1 bg-[#E4E4D8] rounded-full" />
           </div>
 
           {isLoadingMessage ? (
-            <div className="p-5 space-y-4 pt-5">
+            <div className="p-5 space-y-4 pt-4">
               <Skeleton className="h-6 w-3/4 rounded-xl" />
               <Skeleton className="h-4 w-1/2 rounded-lg" />
               <div className="space-y-2.5 pt-4">
@@ -437,12 +441,12 @@ export default function HomePage() {
             </div>
           ) : selectedMessage ? (
             <div className="flex flex-col h-[calc(92vh-28px)] md:h-[calc(88vh-28px)]">
-              {/* Sheet header */}
-              <div className="px-4 pt-3 pb-4 border-b border-[#F0F0E8] flex-shrink-0">
+              {/* Header */}
+              <div className="px-4 pt-2 pb-4 border-b border-[#F0F0E8] flex-shrink-0">
                 <div className="flex items-center gap-2 mb-3">
                   <button
                     onClick={() => setSelectedMessageId(null)}
-                    className="w-9 h-9 flex items-center justify-center text-[#7A7A7A] hover:text-[#1A1A1A] flex-shrink-0 rounded-xl hover:bg-[#F4F4E8] transition-colors"
+                    className="w-9 h-9 flex items-center justify-center text-[#7A7A7A] hover:text-[#1A1A1A] rounded-xl hover:bg-[#F4F4E8] transition-colors flex-shrink-0"
                   >
                     <ArrowLeft className="h-5 w-5" />
                   </button>
@@ -457,8 +461,6 @@ export default function HomePage() {
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
-
-                {/* Sender info */}
                 <div className="flex items-center gap-3 px-1">
                   {(() => {
                     const name = selectedMessage.from.name || selectedMessage.from.address;
@@ -487,7 +489,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Email body */}
+              {/* Body */}
               <div className="flex-1 overflow-auto">
                 {selectedMessage.html ? (
                   <iframe
