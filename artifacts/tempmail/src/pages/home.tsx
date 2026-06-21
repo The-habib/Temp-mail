@@ -14,23 +14,27 @@ import { formatDistanceToNow } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
-  Copy, Check, RefreshCw, Edit3, Clock, ChevronRight,
-  Trash2, ArrowLeft, Mail,
+  Copy, Check, RefreshCw, Edit3, Clock, Trash2, ArrowLeft,
+  Mail, Inbox, Sparkles, ShieldCheck,
 } from "lucide-react";
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
 
-function avatarColor(text: string) {
-  const palette = ["#EA4335","#4285F4","#34A853","#FBBC04","#FF6D00","#9C27B0","#00ACC1","#795548"];
+function avatarColor(text: string): [string, string] {
+  const palettes: [string, string][] = [
+    ["#FF6B6B", "#FF8E53"], ["#4ECDC4", "#44A08D"], ["#A18CD1", "#FBC2EB"],
+    ["#FFECD2", "#FCB69F"], ["#A1C4FD", "#C2E9FB"], ["#FD746C", "#FF9068"],
+    ["#43E97B", "#38F9D7"], ["#FA709A", "#FEE140"],
+  ];
   let h = 0;
-  for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) % palette.length;
-  return palette[Math.abs(h)];
+  for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) % palettes.length;
+  return palettes[Math.abs(h)];
 }
 
-const PROVIDER_META: Record<string, { name: string; color: string }> = {
-  mailtm:       { name: "Mail.tm",       color: "#7AB840" },
-  guerrillamail:{ name: "Guerrilla Mail", color: "#4285F4" },
-  templol:      { name: "TempMail.lol",  color: "#FF6D00" },
+const PROVIDER_META: Record<string, { name: string; bg: string; text: string }> = {
+  mailtm:        { name: "Mail.tm",       bg: "#EDFAD3", text: "#4A7A10" },
+  guerrillamail: { name: "Guerrilla",     bg: "#DBEAFE", text: "#1D4ED8" },
+  templol:       { name: "TempMail.lol",  bg: "#FEF3C7", text: "#B45309" },
 };
 
 export default function HomePage() {
@@ -45,8 +49,7 @@ export default function HomePage() {
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const providerKey = mailbox?.provider || "mailtm";
-  const providerMeta = PROVIDER_META[providerKey] ?? { name: providerKey, color: "#7AB840" };
-  const emailDomain = mailbox?.address?.split("@")[1] || "";
+  const providerMeta = PROVIDER_META[providerKey] ?? { name: providerKey, bg: "#EDFAD3", text: "#4A7A10" };
 
   useEffect(() => {
     if (!mailbox?.createdAt) return;
@@ -75,7 +78,6 @@ export default function HomePage() {
       refetchInterval: 5000,
       queryKey: getGetMessagesQueryKey(mailbox?.id ?? ""),
       retry: (failureCount, error: unknown) => {
-        // Don't retry 401s — session is gone
         const status = (error as { status?: number })?.status;
         if (status === 401) return false;
         return failureCount < 2;
@@ -83,7 +85,6 @@ export default function HomePage() {
     },
   });
 
-  // If the session has expired on the server side, clear local state and go home
   useEffect(() => {
     const status = (messagesError as { status?: number } | null)?.status;
     if (status === 401) {
@@ -126,7 +127,7 @@ export default function HomePage() {
               Array.isArray(old) ? old.filter((m: { id: string }) => m.id !== messageId) : old
           );
           if (selectedMessageId === messageId) setSelectedMessageId(null);
-          toast({ title: "Deleted", description: "Message deleted." });
+          toast({ title: "Deleted", description: "Message removed." });
         },
       }
     );
@@ -141,241 +142,269 @@ export default function HomePage() {
   const unreadCount = messages.filter((m) => !m.seen).length;
 
   return (
-    <div className="flex flex-col md:flex-row h-full overflow-y-auto md:overflow-hidden bg-[#F4F4E4]">
+    <div className="flex flex-col md:flex-row h-full overflow-hidden bg-[#F0F0E4]">
 
-      {/* ── LEFT: Email card ─────────────────────────────────────── */}
-      <div className="md:w-[300px] lg:w-[340px] md:flex-shrink-0 md:h-full md:overflow-y-auto md:border-r md:border-[#E8E8D8]">
-        <div className="px-5 pt-6 pb-5 anim-slide-up">
+      {/* ── LEFT PANEL ──────────────────────────────────────────── */}
+      <div className="md:w-[300px] lg:w-[340px] md:flex-shrink-0 md:h-full md:overflow-y-auto flex-shrink-0">
+        <div className="p-4 space-y-3">
 
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-lg font-semibold text-[#1A1A1A] tracking-tight">Your Temp Email</h1>
-            <span className="w-2.5 h-2.5 bg-[#7AB840] rounded-full inline-block shadow-[0_0_6px_#7AB840]" />
-          </div>
+          {/* Email address card */}
+          <div className="relative rounded-3xl overflow-hidden" style={{
+            background: "linear-gradient(135deg, #1A1A1A 0%, #2D3A1A 50%, #1A2A0A 100%)",
+          }}>
+            {/* Decorative circles */}
+            <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-10" style={{ background: "radial-gradient(circle, #7AB840, transparent)" }} />
+            <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full opacity-10" style={{ background: "radial-gradient(circle, #7AB840, transparent)" }} />
 
-          {/* Illustration — hidden on desktop */}
-          <div className="flex justify-center mb-5 md:hidden">
-            <svg viewBox="0 0 220 140" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-44 h-auto">
-              <ellipse cx="24"  cy="116" rx="20" ry="34" fill="#7AB840" transform="rotate(-16 24 116)" />
-              <ellipse cx="12"  cy="105" rx="13" ry="22" fill="#5A9030" transform="rotate(-32 12 105)" />
-              <ellipse cx="196" cy="116" rx="20" ry="34" fill="#7AB840" transform="rotate(16 196 116)" />
-              <ellipse cx="208" cy="105" rx="13" ry="22" fill="#5A9030" transform="rotate(32 208 105)" />
-              <ellipse cx="110" cy="96"  rx="34" ry="30" fill="#2A2A2A" />
-              <circle  cx="110" cy="52"  r="24"          fill="#C8956C" />
-              <ellipse cx="110" cy="38"  rx="24" ry="16" fill="#1A1A1A" />
-              <circle  cx="110" cy="28"  r="10"          fill="#1A1A1A" />
-              <rect x="76" y="88" width="68" height="40" rx="5" fill="#DEDEDE" />
-              <rect x="80" y="92" width="60" height="33" rx="3" fill="#F5F5F5" />
-              <circle cx="110" cy="108" r="11" fill="#7AB840" />
-              <path d="M104 108 L108 113 L116 104" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <g transform="translate(160,22) rotate(-18)">
-                <polygon points="0,0 30,11 0,22" fill="#7AB840" />
-                <line x1="0" y1="11" x2="20" y2="11" stroke="#4A7A20" strokeWidth="1.5" />
-              </g>
-              <circle cx="48"  cy="30" r="5" fill="#7AB840" opacity="0.6" />
-              <circle cx="174" cy="62" r="4" fill="#F5C040" opacity="0.8" />
-              <circle cx="40"  cy="70" r="3" fill="#7AB840" opacity="0.4" />
-            </svg>
-          </div>
+            <div className="relative p-5">
+              {/* Top row */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 bg-[#7AB840] rounded-lg flex items-center justify-center">
+                    <Mail className="h-3.5 w-3.5 text-white" strokeWidth={2} />
+                  </div>
+                  <span className="text-white/70 text-xs font-medium tracking-wide uppercase">Your Address</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#7AB840] shadow-[0_0_6px_#7AB840]" />
+                  <span className="text-[#7AB840] text-[10px] font-semibold">ACTIVE</span>
+                </div>
+              </div>
 
-          {/* Email address pill */}
-          <div
-            className={`rounded-full px-5 py-3.5 flex items-center justify-between mb-2 transition-all duration-300 ${
-              copied ? "bg-[#5A9030]" : "bg-[#7AB840]"
-            }`}
-          >
-            {mailbox ? (
+              {/* Email address */}
               <button
                 onClick={copyToClipboard}
-                className="font-medium text-sm text-white truncate flex-1 mr-2 text-left"
+                className="w-full text-left mb-4 group"
+                data-testid="button-copy"
               >
-                {mailbox.address}
-              </button>
-            ) : (
-              <div className="h-4 w-44 bg-white/30 rounded animate-pulse" />
-            )}
-            <button
-              onClick={copyToClipboard}
-              className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/35 flex-shrink-0"
-              data-testid="button-copy"
-            >
-              {copied ? (
-                <Check className="h-4 w-4 text-white anim-pop" />
-              ) : (
-                <Copy className="h-4 w-4 text-white" />
-              )}
-            </button>
-          </div>
-
-          {/* Provider badge */}
-          <div className="flex items-center gap-2 mb-5 px-1">
-            <span
-              className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
-              style={{ backgroundColor: providerMeta.color }}
-            >
-              {providerMeta.name}
-            </span>
-            {emailDomain && (
-              <span className="text-xs text-[#9A9A9A]">· @{emailDomain}</span>
-            )}
-          </div>
-
-          {/* Countdown */}
-          <p className="text-xs text-[#8A8A7A] mb-3">This email will expire in</p>
-          <div className="flex items-start justify-center gap-1 mb-5">
-            {[
-              { val: timeLeft.hrs,  label: "HRS"  },
-              { val: null,          label: ""     },
-              { val: timeLeft.mins, label: "MINS" },
-              { val: null,          label: ""     },
-              { val: timeLeft.secs, label: "SECS" },
-            ].map((item, i) => {
-              if (item.val === null) {
-                return (
-                  <div key={i} className="text-3xl font-light text-[#C8C8A8] mt-1 px-0.5 leading-none">:</div>
-                );
-              }
-              return (
-                <div key={i} className="flex-1 text-center">
-                  <div className="text-4xl font-bold text-[#1A1A1A] tabular-nums leading-none">{pad(item.val)}</div>
-                  <div className="text-[10px] text-[#9A9A9A] mt-1.5 uppercase tracking-widest">{item.label}</div>
+                <div className="text-white font-semibold text-sm break-all leading-relaxed group-hover:text-[#7AB840] transition-colors">
+                  {mailbox?.address ?? "Loading..."}
                 </div>
-              );
-            })}
-          </div>
+              </button>
 
-          {/* Refresh + Change */}
-          <div className="flex gap-3 mb-4">
-            <button
-              onClick={() => refetch()}
-              disabled={isFetching || !mailbox}
-              className="flex-1 border border-[#DDDDC8] bg-white rounded-full py-3 flex items-center justify-center gap-2 text-sm font-medium text-[#1A1A1A] hover:bg-[#F8F8F0] disabled:opacity-50"
-              data-testid="button-refresh"
-            >
-              <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-              Refresh
-            </button>
-            <button
-              onClick={() => navigate("/create")}
-              className="flex-1 border border-[#DDDDC8] bg-white rounded-full py-3 flex items-center justify-center gap-2 text-sm font-medium text-[#1A1A1A] hover:bg-[#F8F8F0]"
-              data-testid="button-change"
-            >
-              <Edit3 className="h-4 w-4" />
-              Change
-            </button>
-          </div>
-
-          {/* Auto delete row */}
-          <div className="bg-white rounded-2xl px-4 py-4 flex items-center justify-between shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-[#F2F2E4] rounded-full flex items-center justify-center">
-                <Clock className="h-4 w-4 text-[#7A7A7A]" />
+              {/* Copy + Change row */}
+              <div className="flex gap-2">
+                <button
+                  onClick={copyToClipboard}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                    copied
+                      ? "bg-[#7AB840] text-white"
+                      : "bg-white/10 text-white hover:bg-white/20"
+                  }`}
+                >
+                  {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copied ? "Copied!" : "Copy"}
+                </button>
+                <button
+                  onClick={() => navigate("/create")}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold bg-white/10 text-white hover:bg-white/20 transition-all duration-200"
+                  data-testid="button-change"
+                >
+                  <Edit3 className="h-3.5 w-3.5" />
+                  Change
+                </button>
               </div>
-              <div>
-                <div className="text-sm font-medium text-[#1A1A1A]">Auto delete</div>
-                <div className="text-xs text-[#9A9A9A]">After 24 hours</div>
+
+              {/* Provider badge */}
+              <div className="mt-3 flex items-center gap-2">
+                <span
+                  className="text-[10px] font-bold px-2.5 py-1 rounded-full"
+                  style={{ backgroundColor: providerMeta.bg, color: providerMeta.text }}
+                >
+                  {providerMeta.name}
+                </span>
+                <span className="text-white/30 text-[10px]">via secure proxy</span>
               </div>
             </div>
-            <ChevronRight className="h-4 w-4 text-[#C8C8C0]" />
           </div>
+
+          {/* Countdown card */}
+          <div className="bg-white rounded-3xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+            <div className="flex items-center gap-2 mb-4">
+              <Clock className="h-3.5 w-3.5 text-[#9A9A8A]" />
+              <span className="text-xs text-[#9A9A8A] font-medium">Expires in</span>
+            </div>
+            <div className="flex items-center justify-center gap-2">
+              {[
+                { val: timeLeft.hrs,  label: "HRS"  },
+                { val: timeLeft.mins, label: "MIN" },
+                { val: timeLeft.secs, label: "SEC" },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  {i > 0 && <span className="text-2xl font-light text-[#D0D0C0] mb-3">:</span>}
+                  <div className="flex-1 text-center">
+                    <div
+                      className="w-16 h-14 rounded-2xl flex items-center justify-center mb-1.5"
+                      style={{ background: "linear-gradient(135deg, #F8F8F0, #EFEFDF)" }}
+                    >
+                      <span className="text-2xl font-bold text-[#1A1A1A] tabular-nums">{pad(item.val)}</span>
+                    </div>
+                    <div className="text-[9px] text-[#ABABAB] uppercase tracking-widest font-semibold">{item.label}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Stats row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white rounded-2xl p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Inbox className="h-3.5 w-3.5 text-[#7AB840]" />
+                <span className="text-[10px] text-[#9A9A8A] font-medium uppercase tracking-wide">Total</span>
+              </div>
+              <div className="text-2xl font-bold text-[#1A1A1A]">{messages.length}</div>
+              <div className="text-[10px] text-[#ABABAB] mt-0.5">messages</div>
+            </div>
+            <div className="bg-white rounded-2xl p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Sparkles className="h-3.5 w-3.5 text-[#7AB840]" />
+                <span className="text-[10px] text-[#9A9A8A] font-medium uppercase tracking-wide">Unread</span>
+              </div>
+              <div className="text-2xl font-bold text-[#1A1A1A]">{unreadCount}</div>
+              <div className="text-[10px] text-[#ABABAB] mt-0.5">new emails</div>
+            </div>
+          </div>
+
+          {/* Privacy badge */}
+          <div className="flex items-center gap-2.5 px-4 py-3 bg-[#EDFAD3] rounded-2xl">
+            <ShieldCheck className="h-4 w-4 text-[#4A7A10] flex-shrink-0" />
+            <span className="text-xs text-[#4A7A10] font-medium">No tracking · Auto-deletes in 24h</span>
+          </div>
+
         </div>
       </div>
 
-      {/* ── RIGHT: Inbox ─────────────────────────────────────────── */}
-      <div className="flex-1 bg-white md:h-full md:overflow-y-auto">
-        <div className="rounded-t-[28px] md:rounded-none px-5 pt-6 pb-36 md:pb-8 min-h-[44vh] md:min-h-0 shadow-[0_-4px_16px_rgba(0,0,0,0.04)] md:shadow-none">
+      {/* ── RIGHT: Inbox ────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col bg-white md:h-full overflow-hidden rounded-t-[32px] md:rounded-none shadow-[0_-4px_24px_rgba(0,0,0,0.06)] md:shadow-none">
 
-          {/* Inbox header */}
+        {/* Inbox header */}
+        <div className="px-5 pt-5 pb-3 flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2.5">
-              <h2 className="text-xl font-bold text-[#1A1A1A]">Inbox</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-bold text-[#1A1A1A] tracking-tight">Inbox</h2>
               {unreadCount > 0 && (
-                <span className="anim-pop text-[11px] bg-[#7AB840] text-white rounded-full px-2 py-0.5 font-semibold leading-none">
-                  {unreadCount}
+                <span className="text-[11px] bg-[#7AB840] text-white rounded-full px-2.5 py-0.5 font-bold shadow-[0_2px_8px_rgba(122,184,64,0.35)] anim-pop">
+                  {unreadCount} new
                 </span>
               )}
             </div>
-            {isFetching && <RefreshCw className="h-3.5 w-3.5 text-[#BCBCCC] animate-spin" />}
+            <button
+              onClick={() => refetch()}
+              disabled={isFetching || !mailbox}
+              className="w-8 h-8 rounded-full bg-[#F4F4EA] flex items-center justify-center hover:bg-[#EAEADC] disabled:opacity-40 transition-colors"
+              data-testid="button-refresh"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 text-[#6A6A6A] ${isFetching ? "animate-spin" : ""}`} />
+            </button>
           </div>
 
           {/* Filter tabs */}
-          <div className="flex gap-2 mb-5">
+          <div className="flex gap-1.5 p-1 bg-[#F4F4EA] rounded-2xl">
             {(["All", "Unread", "Read"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setFilter(tab)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
                   filter === tab
-                    ? "bg-[#7AB840] text-white shadow-sm"
-                    : "bg-[#F2F2E8] text-[#7A7A7A] hover:bg-[#E8E8D8]"
+                    ? "bg-white text-[#1A1A1A] shadow-[0_1px_4px_rgba(0,0,0,0.08)]"
+                    : "text-[#8A8A7A] hover:text-[#4A4A4A]"
                 }`}
               >
                 {tab}
+                {tab === "Unread" && unreadCount > 0 && (
+                  <span className="ml-1 text-[#7AB840]">({unreadCount})</span>
+                )}
               </button>
             ))}
           </div>
+        </div>
 
-          {/* Message list */}
+        {/* Message list — scrollable */}
+        <div className="flex-1 overflow-y-auto px-4 pb-24 md:pb-6">
           {isLoadingMessages ? (
-            <div className="space-y-5">
+            <div className="space-y-3 pt-2">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <Skeleton className="w-10 h-10 rounded-full flex-shrink-0" />
+                <div key={i} className="flex items-start gap-3 p-4 rounded-2xl bg-[#FAFAF6]">
+                  <Skeleton className="w-11 h-11 rounded-2xl flex-shrink-0" />
                   <div className="flex-1 space-y-2">
                     <div className="flex justify-between">
-                      <Skeleton className="h-3.5 w-24" />
-                      <Skeleton className="h-3 w-12" />
+                      <Skeleton className="h-3.5 w-28" />
+                      <Skeleton className="h-3 w-10" />
                     </div>
                     <Skeleton className="h-3.5 w-full" />
-                    <Skeleton className="h-3 w-3/4" />
+                    <Skeleton className="h-3 w-2/3" />
                   </div>
                 </div>
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-14 text-center anim-fade">
-              <div className="w-16 h-16 bg-[#F4F4EA] rounded-full flex items-center justify-center mb-4">
-                <Mail className="h-8 w-8 text-[#C8C8B8]" strokeWidth={1.4} />
+            <div className="flex flex-col items-center justify-center py-16 text-center anim-fade">
+              <div className="relative mb-6">
+                <div className="w-20 h-20 bg-[#F4F4EA] rounded-3xl flex items-center justify-center">
+                  <Mail className="h-9 w-9 text-[#C8C8B0]" strokeWidth={1.2} />
+                </div>
+                <div className="absolute -top-1 -right-1 w-5 h-5 bg-[#7AB840] rounded-full flex items-center justify-center">
+                  <span className="text-white text-[10px] font-bold">0</span>
+                </div>
               </div>
-              <p className="font-semibold text-[#1A1A1A] mb-1.5">No messages yet</p>
-              <p className="text-sm text-[#9A9A9A] max-w-[200px] leading-relaxed">
-                Emails sent to your address will appear here.
+              <p className="font-bold text-[#1A1A1A] text-base mb-2">No messages yet</p>
+              <p className="text-sm text-[#9A9A8A] max-w-[190px] leading-relaxed">
+                Share your address and emails will appear here automatically.
               </p>
+              <button
+                onClick={copyToClipboard}
+                className="mt-5 flex items-center gap-2 px-5 py-2.5 bg-[#1A1A1A] text-white text-sm font-semibold rounded-full hover:bg-[#2A2A2A] transition-colors"
+              >
+                <Copy className="h-3.5 w-3.5" />
+                Copy address
+              </button>
             </div>
           ) : (
-            <div className="divide-y divide-[#F4F4EE]">
+            <div className="space-y-2 pt-2">
               {filtered.map((msg, i) => {
                 const senderText = msg.from.name || msg.from.address;
                 const initial = senderText.charAt(0).toUpperCase();
-                const color = avatarColor(senderText);
+                const [gradFrom, gradTo] = avatarColor(senderText);
                 return (
                   <button
                     key={msg.id}
                     onClick={() => setSelectedMessageId(msg.id)}
                     data-testid={`message-item-${msg.id}`}
-                    className="w-full flex items-start gap-3 py-4 text-left rounded-xl px-1 hover:bg-[#F8F8F2] anim-slide-up"
-                    style={{ animationDelay: `${i * 55}ms` }}
+                    className={`w-full flex items-start gap-3.5 p-4 text-left rounded-2xl transition-all duration-200 anim-slide-up group ${
+                      !msg.seen
+                        ? "bg-[#F8FAF4] hover:bg-[#F2F7EC]"
+                        : "bg-[#FAFAF8] hover:bg-[#F5F5F0]"
+                    }`}
+                    style={{ animationDelay: `${i * 45}ms` }}
                   >
+                    {/* Avatar */}
                     <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 mt-0.5 shadow-sm"
-                      style={{ backgroundColor: color }}
+                      className="w-11 h-11 rounded-2xl flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-sm"
+                      style={{ background: `linear-gradient(135deg, ${gradFrom}, ${gradTo})` }}
                     >
                       {initial}
                     </div>
+
+                    {/* Content */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <span className="font-semibold text-sm text-[#1A1A1A] truncate mr-2">{senderText}</span>
-                        <span className="text-[11px] text-[#ACACAC] flex-shrink-0">
+                      <div className="flex items-start justify-between mb-1 gap-2">
+                        <span className={`text-sm truncate ${!msg.seen ? "font-bold text-[#1A1A1A]" : "font-semibold text-[#3A3A3A]"}`}>
+                          {senderText}
+                        </span>
+                        <span className="text-[10px] text-[#BCBCAC] flex-shrink-0 mt-0.5">
                           {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: false })}
                         </span>
                       </div>
-                      <div className={`text-sm truncate mb-0.5 ${!msg.seen ? "font-semibold text-[#2A2A2A]" : "font-medium text-[#4A4A4A]"}`}>
+                      <div className={`text-sm truncate mb-1 ${!msg.seen ? "font-semibold text-[#2A2A2A]" : "font-medium text-[#5A5A5A]"}`}>
                         {msg.subject || "No Subject"}
                       </div>
-                      <div className="text-xs text-[#9A9A9A] truncate">{msg.intro}</div>
+                      <div className="text-xs text-[#9A9A8A] truncate leading-relaxed">{msg.intro}</div>
                     </div>
+
+                    {/* Unread dot */}
                     {!msg.seen && (
-                      <div className="w-2 h-2 bg-[#7AB840] rounded-full flex-shrink-0 mt-2.5" />
+                      <div className="w-2 h-2 bg-[#7AB840] rounded-full flex-shrink-0 mt-2 shadow-[0_0_6px_rgba(122,184,64,0.6)]" />
                     )}
                   </button>
                 );
@@ -385,78 +414,95 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* ── Message detail sheet ──────────────────────────────────── */}
+      {/* ── Message detail sheet ─────────────────────────────────── */}
       <Sheet open={!!selectedMessageId} onOpenChange={(open) => !open && setSelectedMessageId(null)}>
         <SheetContent
           side="bottom"
-          className="h-[90vh] md:h-[85vh] rounded-t-[24px] p-0 border-0 bg-white focus-visible:outline-none"
+          className="h-[92vh] md:h-[88vh] rounded-t-[28px] p-0 border-0 bg-white focus-visible:outline-none"
         >
-          <div className="flex justify-center pt-3 pb-1">
-            <div className="w-10 h-1 bg-[#E0E0D8] rounded-full" />
+          {/* Handle */}
+          <div className="flex justify-center pt-3 pb-0 flex-shrink-0">
+            <div className="w-12 h-1 bg-[#E4E4D8] rounded-full" />
           </div>
 
           {isLoadingMessage ? (
-            <div className="p-5 space-y-4 anim-fade">
-              <Skeleton className="h-6 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
-              <div className="space-y-2 pt-2">
-                <Skeleton className="h-3 w-full" />
-                <Skeleton className="h-3 w-full" />
-                <Skeleton className="h-3 w-5/6" />
+            <div className="p-5 space-y-4 pt-5">
+              <Skeleton className="h-6 w-3/4 rounded-xl" />
+              <Skeleton className="h-4 w-1/2 rounded-lg" />
+              <div className="space-y-2.5 pt-4">
+                {[1, 0.9, 0.7, 0.85, 0.6].map((w, i) => (
+                  <Skeleton key={i} className="h-3 rounded-lg" style={{ width: `${w * 100}%` }} />
+                ))}
               </div>
             </div>
           ) : selectedMessage ? (
-            <div className="flex flex-col h-[calc(90vh-28px)] md:h-[calc(85vh-28px)] overflow-hidden anim-slide-up">
+            <div className="flex flex-col h-[calc(92vh-28px)] md:h-[calc(88vh-28px)]">
               {/* Sheet header */}
-              <div className="px-5 pt-3 pb-4 border-b border-[#F2F2EE] flex-none">
-                <div className="flex items-start gap-2 mb-3">
+              <div className="px-4 pt-3 pb-4 border-b border-[#F0F0E8] flex-shrink-0">
+                <div className="flex items-center gap-2 mb-3">
                   <button
                     onClick={() => setSelectedMessageId(null)}
-                    className="w-8 h-8 flex items-center justify-center text-[#7A7A7A] hover:text-[#1A1A1A] flex-shrink-0 mt-0.5 rounded-full hover:bg-[#F4F4E4]"
+                    className="w-9 h-9 flex items-center justify-center text-[#7A7A7A] hover:text-[#1A1A1A] flex-shrink-0 rounded-xl hover:bg-[#F4F4E8] transition-colors"
                   >
                     <ArrowLeft className="h-5 w-5" />
                   </button>
-                  <h2 className="flex-1 text-base font-bold text-[#1A1A1A] leading-snug pt-1">
+                  <h2 className="flex-1 text-base font-bold text-[#1A1A1A] leading-snug line-clamp-2">
                     {selectedMessage.subject || "No Subject"}
                   </h2>
                   <button
                     onClick={() => handleDelete(selectedMessage.id)}
                     data-testid={`button-delete-${selectedMessage.id}`}
-                    className="w-8 h-8 flex items-center justify-center text-[#EA4335] hover:bg-red-50 rounded-full flex-shrink-0 mt-0.5"
+                    className="w-9 h-9 flex items-center justify-center text-[#EA4335] hover:bg-red-50 rounded-xl flex-shrink-0 transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
-                <div className="space-y-1 text-xs pl-10">
-                  <div className="flex gap-3">
-                    <span className="text-[#ACACAC] w-8 flex-shrink-0">From</span>
-                    <span className="text-[#3A3A3A] font-medium break-all">
-                      {selectedMessage.from.name
-                        ? `${selectedMessage.from.name} <${selectedMessage.from.address}>`
-                        : selectedMessage.from.address}
-                    </span>
+
+                {/* Sender info */}
+                <div className="flex items-center gap-3 px-1">
+                  {(() => {
+                    const name = selectedMessage.from.name || selectedMessage.from.address;
+                    const [gFrom, gTo] = avatarColor(name);
+                    return (
+                      <div
+                        className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+                        style={{ background: `linear-gradient(135deg, ${gFrom}, ${gTo})` }}
+                      >
+                        {name.charAt(0).toUpperCase()}
+                      </div>
+                    );
+                  })()}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-[#1A1A1A] truncate">
+                      {selectedMessage.from.name || selectedMessage.from.address}
+                    </div>
+                    {selectedMessage.from.name && (
+                      <div className="text-xs text-[#9A9A8A] truncate">{selectedMessage.from.address}</div>
+                    )}
                   </div>
-                  <div className="flex gap-3">
-                    <span className="text-[#ACACAC] w-8 flex-shrink-0">Date</span>
-                    <span className="text-[#6A6A6A]">{new Date(selectedMessage.createdAt).toLocaleString()}</span>
+                  <div className="text-[11px] text-[#BCBCAC] flex-shrink-0 text-right">
+                    <div>{new Date(selectedMessage.createdAt).toLocaleDateString()}</div>
+                    <div>{new Date(selectedMessage.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
                   </div>
                 </div>
               </div>
 
               {/* Email body */}
-              <div className="flex-1 overflow-auto bg-white">
+              <div className="flex-1 overflow-auto">
                 {selectedMessage.html ? (
                   <iframe
-                    srcDoc={selectedMessage.html}
+                    srcDoc={`<style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;padding:16px;color:#1A1A1A;font-size:14px;line-height:1.6;word-break:break-word}img{max-width:100%;height:auto}a{color:#4A7A10}</style>${selectedMessage.html}`}
                     sandbox="allow-same-origin"
                     title="Email content"
                     className="w-full border-0 block"
-                    style={{ height: "100%", minHeight: "360px" }}
+                    style={{ height: "100%", minHeight: "400px" }}
                   />
                 ) : (
-                  <pre className="whitespace-pre-wrap font-sans text-sm text-[#3A3A3A] p-5 leading-relaxed">
-                    {selectedMessage.text || "No content"}
-                  </pre>
+                  <div className="p-5">
+                    <pre className="whitespace-pre-wrap font-sans text-sm text-[#3A3A3A] leading-relaxed">
+                      {selectedMessage.text || "No content"}
+                    </pre>
+                  </div>
                 )}
               </div>
             </div>
